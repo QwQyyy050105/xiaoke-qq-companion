@@ -1,0 +1,31 @@
+{
+  "name": "xiaoke-qq-companion",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli.mjs start",
+    "test": "node --test",
+    "check": "node src/cli.mjs doctor",
+    "chat": "node src/cli.mjs chat",
+    "init": "node src/cli.mjs init",
+    "doctor": "node src/cli.mjs doctor",
+    "demo": "node src/cli.mjs demo",
+    "panel": "node src/cli.mjs panel",
+    "check:release": "node scripts/release_check.mjs",
+    "pretest": "node scripts/prepare_test.mjs"
+  },
+  "dependencies": {
+    "https-proxy-agent": "7.0.6",
+    "katex": "0.18.2",
+    "playwright-core": "1.64.1",
+    "silk-wasm": "3.7.1",
+    "undici": "6.29.1",
+    "ws": "8.22.0"
+  },
+  "description": "Portable official QQ bot companion with offline demo and pluggable model providers",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  }
+}

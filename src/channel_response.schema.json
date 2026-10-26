@@ -1,0 +1,1 @@
+{"type":"object","properties":{"reply":{"type":"string"},"action":{"type":"string"},"parameters_json":{"type":"string"}},"required":["reply","action","parameters_json"],"additionalProperties":false}

@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible issue without secrets or real chats
+body:
+  - type: markdown
+    attributes:
+      value: 'Do not include tokens, account files, real conversation IDs, private chat screenshots or login QR codes.'
+  - type: input
+    id: version
+    attributes:
+      label: Project version / commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS, Node, app or gateway versions
+    validations:
+      required: true
+  - type: input
+    id: route
+    attributes:
+      label: Transport and model routes
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal steps with fictional messages
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual result
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted doctor output and error categories

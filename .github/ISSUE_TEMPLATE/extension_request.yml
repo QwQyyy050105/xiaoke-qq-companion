@@ -1,0 +1,21 @@
+name: Extension request
+description: Propose a provider or adapter
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: Target OS, app or gateway version
+  - type: textarea
+    id: problem
+    attributes:
+      label: User task and current limitation
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Official protocol documentation
+  - type: textarea
+    id: validation
+    attributes:
+      label: Proposed offline and real-account validation

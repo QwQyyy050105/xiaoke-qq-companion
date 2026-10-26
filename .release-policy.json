@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "packageName": "xiaoke-qq-companion",
+  "maxSourceBytes": 2000000,
+  "requiredFiles": [
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "package-lock.json",
+    ".gitignore",
+    ".release-policy.json",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "docs/CHOOSING_A_TEMPLATE.md",
+    "docs/BEGINNER_PROMPTS.md",
+    "docs/PORTABILITY.md",
+    "scripts/release_check.mjs",
+    "test/release_policy.test.mjs",
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    ".agents/skills/verify-bot-release/SKILL.md",
+    ".agents/skills/extend-bot-capability/SKILL.md",
+    ".agents/skills/personalize-bot/SKILL.md",
+    ".agents/skills/handoff-bot-incident/SKILL.md",
+    "Start_Panel.cmd",
+    "docs/SECURITY_AND_MODELS.md"
+  ],
+  "forbiddenPackages": [
+    "@snowluma/sdk",
+    "@snowluma/mcp"
+  ]
+}

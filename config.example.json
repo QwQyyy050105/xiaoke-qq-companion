@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "appId": "",
+  "pairingHash": "",
+  "proxy": "",
+  "modelProvider": {
+    "type": "mock",
+    "baseURL": "https://api.openai.com/v1",
+    "model": "",
+    "envKey": "MODEL_API_KEY",
+    "timeoutMs": 60000,
+    "maxOutputTokens": 1200,
+    "tokenLimitField": "max_tokens",
+    "responseFormat": "json_object"
+  },
+  "character": {
+    "aliases": [
+      "小柯",
+      "小珂"
+    ],
+    "style": "自然简短，有自己的兴趣，先理解上下文再接话"
+  },
+  "participation": {
+    "mode": "mentioned",
+    "quietStart": 0,
+    "quietEnd": 0,
+    "timeZone": "Asia/Shanghai"
+  },
+  "scope": {
+    "groups": [],
+    "privateUsers": []
+  },
+  "media": {
+    "vision": false,
+    "asr": false,
+    "tts": false,
+    "imageGeneration": false
+  },
+  "plugins": [],
+  "consolePort": 8794
+}

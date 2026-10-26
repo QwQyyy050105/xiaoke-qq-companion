@@ -1,0 +1,446 @@
+{
+  "type": "object",
+  "properties": {
+    "reply": {
+      "type": "string"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    },
+    "social": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "say",
+                "silent"
+              ]
+            },
+            "next_wake_ms": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "active_topic": {
+              "type": "string"
+            },
+            "pending_thought": {
+              "type": "string"
+            },
+            "clear_topic": {
+              "type": "boolean"
+            },
+            "wait": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "timer",
+                    "condition",
+                    "indefinite"
+                  ]
+                },
+                "keywords": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "maxItems": 12
+                },
+                "speakers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 20
+                },
+                "match": {
+                  "type": "string",
+                  "enum": [
+                    "any",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "mode",
+                "keywords",
+                "speakers",
+                "match"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "next_wake_ms",
+            "active_topic",
+            "pending_thought",
+            "clear_topic",
+            "wait"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "media": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "send_id": {
+              "type": "string"
+            },
+            "collect_id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "create_prompt": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "voice_id": {
+              "type": "string"
+            },
+            "note_id": {
+              "type": "string"
+            },
+            "note": {
+              "type": "string"
+            },
+            "usage": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 12
+            },
+            "remember_sticker": {
+              "type": "boolean"
+            },
+            "image_kind": {
+              "type": "string",
+              "enum": [
+                "none",
+                "sticker",
+                "photo",
+                "screenshot",
+                "document",
+                "unknown"
+              ]
+            },
+            "selection": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "fit": {
+                  "type": "string",
+                  "enum": [
+                    "contextual",
+                    "requested",
+                    "none"
+                  ]
+                },
+                "message_id": {
+                  "type": "string"
+                },
+                "catalog_evidence": {
+                  "type": "string"
+                },
+                "intent": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "fit",
+                "message_id",
+                "catalog_evidence",
+                "intent"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "send_id",
+            "collect_id",
+            "label",
+            "create_prompt",
+            "title",
+            "voice_id",
+            "note_id",
+            "note",
+            "usage",
+            "tags",
+            "remember_sticker",
+            "image_kind",
+            "selection"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "delivery": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reply_to_message_id": {
+              "type": "string"
+            },
+            "mention_speakers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "reply_to_message_id",
+            "mention_speakers"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "vocabulary_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "propose"
+            ]
+          },
+          "term": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string"
+          },
+          "speaker": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation",
+          "term",
+          "source",
+          "messageId",
+          "speaker"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 4
+    },
+    "math_document": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "blocks": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "text",
+                      "math"
+                    ]
+                  },
+                  "content": {
+                    "type": "string",
+                    "maxLength": 4000
+                  }
+                },
+                "required": [
+                  "type",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "summary": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "title",
+            "blocks",
+            "summary"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "expression": {
+      "type": "object",
+      "properties": {
+        "mood": {
+          "type": "string",
+          "enum": [
+            "calm",
+            "happy",
+            "playful",
+            "curious",
+            "sleepy",
+            "concerned",
+            "annoyed"
+          ]
+        },
+        "energy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "continuity": {
+          "type": "string",
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "mood",
+        "energy",
+        "continuity"
+      ],
+      "additionalProperties": false
+    },
+    "speech": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "mood": {
+              "type": "string",
+              "enum": [
+                "calm",
+                "playful",
+                "sleepy",
+                "concerned"
+              ]
+            }
+          },
+          "required": [
+            "text",
+            "mood"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "character_updates": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "upsert",
+              "delete"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "style",
+              "interest",
+              "rapport"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "source_message_id": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "source_excerpt": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "operation",
+          "id",
+          "kind",
+          "text",
+          "source_message_id",
+          "source_excerpt"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "reply",
+    "messages",
+    "social",
+    "media",
+    "delivery",
+    "vocabulary_actions",
+    "math_document",
+    "expression",
+    "speech",
+    "character_updates"
+  ],
+  "additionalProperties": false
+}

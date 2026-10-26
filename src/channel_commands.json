@@ -1,0 +1,1663 @@
+[
+  {
+    "name": "feed.latest-feeds-detail",
+    "description": "选择频道并获取最新帖子详情；先只读展示频道选项，再续接所选频道",
+    "risk": "read",
+    "flags": [
+      { "name": "count", "type": "int", "default": 10, "description": "帖子数量，1–10" },
+      { "name": "resume-id", "type": "string" },
+      { "name": "pick", "type": "string" }
+    ]
+  },
+  {
+    "name": "feed.hot-feeds-detail",
+    "description": "选择频道并获取热门帖子详情；先只读展示频道选项，再续接所选频道",
+    "risk": "read",
+    "flags": [
+      { "name": "count", "type": "int", "default": 10, "description": "帖子数量，1–10" },
+      { "name": "resume-id", "type": "string" },
+      { "name": "pick", "type": "string" }
+    ]
+  },
+  {
+    "name": "manage.search-and-join",
+    "description": "搜索频道并选择加入；具体频道选择后再确认加入，不代填验证答案",
+    "risk": "write",
+    "flags": [
+      { "name": "keyword", "type": "string", "required": true },
+      { "name": "resume-id", "type": "string" },
+      { "name": "pick", "type": "string" }
+    ]
+  },
+  {
+    "name": "feed.search-and-comment",
+    "description": "在指定频道搜帖并评论；先提供确定正文，选择具体帖子后确认发送",
+    "risk": "write",
+    "flags": [
+      { "name": "guild-id", "type": "string", "required": true, "pattern": "uint" },
+      { "name": "query", "type": "string", "required": true },
+      { "name": "content", "type": "string", "required": true },
+      { "name": "resume-id", "type": "string" },
+      { "name": "pick", "type": "string" }
+    ]
+  },
+  {
+    "name": "feed.quick-publish",
+    "description": "选择频道和版块后发帖；必须先有确定正文，最后按具体目标确认发布",
+    "risk": "write",
+    "flags": [
+      { "name": "content", "type": "string", "description": "纯文本正文，与 markdown-content 互斥" },
+      { "name": "markdown-content", "type": "string", "description": "仅长帖，需要 title，与 content 互斥" },
+      { "name": "title", "type": "string", "description": "提供标题自动升级为长帖" },
+      { "name": "content-file", "type": "string" },
+      { "name": "feed-type", "type": "int", "default": 1, "enum": ["1", "2"] },
+      { "name": "image", "type": "string_array" },
+      { "name": "video", "type": "string_array" },
+      { "name": "at-user", "type": "string_array" },
+      { "name": "link", "type": "string_array" },
+      { "name": "topic-name", "type": "string_array" },
+      { "name": "resume-id", "type": "string" },
+      { "name": "pick", "type": "string" }
+    ]
+  },
+  {
+    "name": "feed.get-guild-feeds",
+    "description": "获取腾讯频道主页帖子",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "get-type",
+        "type": "int",
+        "default": 2,
+        "enum": [
+          "1",
+          "2"
+        ],
+        "description": "获取类型: 1=热门 2=最新"
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "default": 20,
+        "description": "每页数量"
+      },
+      {
+        "name": "feed-attach-info",
+        "type": "string",
+        "description": "翻页令牌 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "feed.get-channel-timeline-feeds",
+    "description": "获取版块帖子列表",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "版块 ID"
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "default": 20,
+        "description": "每页数量"
+      },
+      {
+        "name": "feed-attach-info",
+        "type": "string",
+        "description": "翻页令牌 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "feed.get-feed-detail",
+    "description": "查看帖子详情",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID (推荐传入)"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID"
+      }
+    ]
+  },
+  {
+    "name": "feed.get-feed-comments",
+    "description": "查看帖子评论",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID"
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "default": 20,
+        "description": "每页数量 (最大 20)"
+      },
+      {
+        "name": "rank-type",
+        "type": "int",
+        "description": "排序：0=默认，1=时间正序，2=时间倒序"
+      },
+      {
+        "name": "reply-list-num",
+        "type": "int",
+        "description": "每条评论预加载的回复数（默认1，最大10）"
+      },
+      {
+        "name": "attach-info",
+        "type": "string",
+        "description": "翻页令牌 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "feed.search-guild-feeds",
+    "description": "搜索帖子",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "query",
+        "type": "string",
+        "description": "搜索关键词"
+      },
+      {
+        "name": "keyword",
+        "type": "string",
+        "description": "搜索关键词 (--query 的别名)"
+      },
+      {
+        "name": "next-page-cookie",
+        "type": "string",
+        "description": "翻页令牌 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "feed.get-feed-share-url",
+    "description": "获取帖子分享短链",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID"
+      }
+    ]
+  },
+  {
+    "name": "feed.get-notices",
+    "description": "查看互动消息",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "page-num",
+        "type": "int",
+        "default": 20,
+        "description": "每页数量"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID (可选, 筛选特定腾讯频道)"
+      },
+      {
+        "name": "attach-info",
+        "type": "string",
+        "description": "翻页令牌 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "feed.get-next-page-replies",
+    "description": "查看更多回复（评论回复分页）",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "comment-id",
+        "type": "string",
+        "required": true,
+        "description": "评论 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "版块 ID"
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "default": 20,
+        "description": "每页数量 (最大 50)"
+      },
+      {
+        "name": "attach-info",
+        "type": "string",
+        "description": "翻页令牌 (首次从 get-feed-comments 评论对象的 attach_info 获取, 后续从本命令返回获取)"
+      }
+    ]
+  },
+  {
+    "name": "feed.publish-feed",
+    "description": "发表帖子",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID（普通用户模式必填；作者身份全局发帖时不传或传 0）"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID（普通用户模式必填；作者身份全局发帖时不传或传 0）"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "description": "帖子标题 (长贴必填, 有标题自动升级为长贴)"
+      },
+      {
+        "name": "content",
+        "type": "string",
+        "description": "帖子内容 (普通文本模式必填; 与 --markdown-content 互斥)"
+      },
+      {
+        "name": "markdown-content",
+        "type": "string",
+        "description": "Markdown 格式正文 (仅长贴支持, 需提供 --title; 与 --content 互斥; 支持 [(0,N)](@img) 图片占位符和 [video:N] 视频占位符)"
+      },
+      {
+        "name": "content-file",
+        "type": "string",
+        "description": "从文件读取正文 (txt/md), 与 --content 互斥"
+      },
+      {
+        "name": "feed-type",
+        "type": "int",
+        "default": 1,
+        "enum": [
+          "1",
+          "2"
+        ],
+        "description": "帖子类型: 1=短贴 2=长贴"
+      },
+      {
+        "name": "image",
+        "type": "string_array",
+        "description": "图片文件路径 (可多次指定, 短贴≤18张/长贴≤50张)"
+      },
+      {
+        "name": "video",
+        "type": "string_array",
+        "description": "视频文件路径 (短贴最多 1 个, 长贴最多 5 个)"
+      },
+      {
+        "name": "at-user",
+        "type": "string_array",
+        "description": "@用户追加到正文末尾 (格式: tinyid:昵称); 推荐改用 content 内联语法 @[昵称](tinyid); Markdown 模式无效"
+      },
+      {
+        "name": "link",
+        "type": "string_array",
+        "description": "文字链接追加到正文末尾 (格式: url|显示文字); 推荐改用 content 内联语法 [显示文字](url)"
+      },
+      {
+        "name": "topic-name",
+        "type": "string_array",
+        "description": "话题名追加到正文末尾 (可多次指定); 推荐改用 content 内联语法 #[话题名]()"
+      }
+    ]
+  },
+  {
+    "name": "feed.del-feed",
+    "description": "删除帖子",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "版块 ID"
+      },
+      {
+        "name": "create-time",
+        "type": "string",
+        "required": true,
+        "description": "创建时间戳"
+      }
+    ]
+  },
+  {
+    "name": "feed.do-comment",
+    "description": "发表/删除评论",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "description": "帖子 ID（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "feed-create-time",
+        "type": "string",
+        "description": "帖子创建时间戳（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "comment-type",
+        "type": "int",
+        "default": 1,
+        "enum": [
+          "0",
+          "1",
+          "2"
+        ],
+        "description": "评论类型: 0=自删 1=发表 2=帖主删"
+      },
+      {
+        "name": "content",
+        "type": "string",
+        "description": "评论内容 (发表时与 image-path 至少填一个)"
+      },
+      {
+        "name": "image-path",
+        "type": "string",
+        "description": "评论图片路径 (最多 1 张, 自动上传)"
+      },
+      {
+        "name": "at-user",
+        "type": "string_array",
+        "description": "@用户追加到正文末尾 (格式: tinyid:昵称); 推荐改用 content 内联语法 @[昵称](tinyid)"
+      },
+      {
+        "name": "link",
+        "type": "string_array",
+        "description": "文字链接追加到正文末尾 (格式: url|显示文字); 推荐改用 content 内联语法 [显示文字](url)"
+      },
+      {
+        "name": "comment-id",
+        "type": "string",
+        "description": "评论 ID (删除时必填)"
+      },
+      {
+        "name": "comment-author-id",
+        "type": "string",
+        "description": "评论作者 ID (删除时必填)"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID (建议填写)"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID (建议填写)"
+      },
+      {
+        "name": "ref",
+        "type": "int",
+        "description": "通知编号（如 #1），按编号自动填充帖子信息"
+      }
+    ]
+  },
+  {
+    "name": "feed.do-reply",
+    "description": "发表/删除回复",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "description": "帖子 ID（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "feed-author-id",
+        "type": "string",
+        "description": "帖子作者 ID（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "feed-create-time",
+        "type": "string",
+        "description": "帖子创建时间戳（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "comment-id",
+        "type": "string",
+        "description": "评论 ID（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "comment-author-id",
+        "type": "string",
+        "description": "评论作者 ID（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "comment-create-time",
+        "type": "string",
+        "description": "评论创建时间戳（直传或通过 --ref 自动填充）"
+      },
+      {
+        "name": "reply-type",
+        "type": "int",
+        "default": 1,
+        "enum": [
+          "0",
+          "1",
+          "2"
+        ],
+        "description": "回复类型: 0=自删 1=发表 2=帖主删"
+      },
+      {
+        "name": "replier-id",
+        "type": "string",
+        "description": "回复人用户 ID（发表回复时必填，删除时可选）"
+      },
+      {
+        "name": "content",
+        "type": "string",
+        "description": "回复内容 (发表时与 image-path 至少填一个)"
+      },
+      {
+        "name": "image-path",
+        "type": "string",
+        "description": "回复图片路径 (最多 1 张, 自动上传)"
+      },
+      {
+        "name": "at-user",
+        "type": "string_array",
+        "description": "@用户追加到正文末尾 (格式: tinyid:昵称); 推荐改用 content 内联语法 @[昵称](tinyid)"
+      },
+      {
+        "name": "link",
+        "type": "string_array",
+        "description": "文字链接追加到正文末尾 (格式: url|显示文字); 推荐改用 content 内联语法 [显示文字](url)"
+      },
+      {
+        "name": "target-reply-id",
+        "type": "string",
+        "description": "被回复的回复ID（回复某条回复时必填）"
+      },
+      {
+        "name": "target-user-id",
+        "type": "string",
+        "description": "被回复人用户ID（与 target-reply-id 配套使用）"
+      },
+      {
+        "name": "target-user-nick",
+        "type": "string",
+        "description": "被回复人昵称（系统自动插入@节点显示「回复@xxx」）"
+      },
+      {
+        "name": "reply-id",
+        "type": "string",
+        "description": "回复 ID (删除时必填)"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID (建议填写, 写操作不传可能报错)"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID (建议填写, 写操作不传可能报错)"
+      },
+      {
+        "name": "ref",
+        "type": "int",
+        "description": "通知编号（如 #1），按编号自动填充帖子和评论信息"
+      }
+    ]
+  },
+  {
+    "name": "feed.do-like",
+    "description": "评论/回复点赞",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "like-type",
+        "type": "int",
+        "default": 0,
+        "enum": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ],
+        "description": "点赞类型: 3=赞评论 4=取消 5=赞回复 6=取消"
+      },
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "comment-id",
+        "type": "string",
+        "required": true,
+        "description": "评论 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID"
+      },
+      {
+        "name": "feed-author-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子作者 ID"
+      },
+      {
+        "name": "feed-create-time",
+        "type": "string",
+        "required": true,
+        "description": "帖子创建时间戳"
+      },
+      {
+        "name": "comment-author-id",
+        "type": "string",
+        "required": true,
+        "description": "评论作者 ID"
+      },
+      {
+        "name": "reply-id",
+        "type": "string",
+        "description": "回复 ID (点赞回复时必填)"
+      },
+      {
+        "name": "reply-author-id",
+        "type": "string",
+        "description": "回复作者 ID (点赞回复时必填)"
+      },
+      {
+        "name": "comment-like-count",
+        "type": "int",
+        "description": "评论当前点赞数（可选，用于乐观更新）"
+      },
+      {
+        "name": "reply-like-count",
+        "type": "int",
+        "description": "回复当前点赞数（可选，用于乐观更新）"
+      }
+    ]
+  },
+  {
+    "name": "feed.do-feed-prefer",
+    "description": "帖子点赞/取消",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "action",
+        "type": "int",
+        "default": 0,
+        "enum": [
+          "1",
+          "3"
+        ],
+        "description": "操作: 1=点赞 3=取消"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "pattern": "uint",
+        "description": "版块 ID"
+      }
+    ]
+  },
+  {
+    "name": "feed.alter-feed",
+    "description": "编辑帖子",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "版块 ID"
+      },
+      {
+        "name": "create-time",
+        "type": "string",
+        "required": true,
+        "description": "帖子创建时间戳"
+      },
+      {
+        "name": "feed-type",
+        "type": "int",
+        "default": 1,
+        "enum": [
+          "1",
+          "2"
+        ],
+        "description": "帖子类型: 1=短贴 2=长贴"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "description": "新标题"
+      },
+      {
+        "name": "content",
+        "type": "string",
+        "description": "新内容（普通文本模式；与 --markdown-content 互斥）"
+      },
+      {
+        "name": "markdown-content",
+        "type": "string",
+        "description": "Markdown 正文（仅长贴; 短贴自动降级; 与 --content 互斥）"
+      },
+      {
+        "name": "content-file",
+        "type": "string",
+        "description": "从文件读取新正文 (txt/md), 与 --content 及 --markdown-content 互斥"
+      },
+      {
+        "name": "image",
+        "type": "string_array",
+        "description": "新增图片文件路径 (可多次指定)"
+      },
+      {
+        "name": "video",
+        "type": "string_array",
+        "description": "新增视频文件路径 (最多 1 个)"
+      },
+      {
+        "name": "at-user",
+        "type": "string_array",
+        "description": "@用户追加到正文末尾 (格式: tinyid:昵称); 推荐改用 content 内联语法 @[昵称](tinyid)"
+      },
+      {
+        "name": "link",
+        "type": "string_array",
+        "description": "文字链接追加到正文末尾 (格式: url|显示文字); 推荐改用 content 内联语法 [显示文字](url)"
+      },
+      {
+        "name": "topic-name",
+        "type": "string_array",
+        "description": "话题名追加到正文末尾 (可多次指定); 推荐改用 content 内联语法 #[话题名]()"
+      },
+      {
+        "name": "clear-images",
+        "type": "bool",
+        "default": false,
+        "description": "清除原帖所有图片"
+      },
+      {
+        "name": "clear-videos",
+        "type": "bool",
+        "default": false,
+        "description": "清除原帖所有视频"
+      }
+    ]
+  },
+  {
+    "name": "feed.top-feed",
+    "description": "帖子置顶/取消置顶",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "user-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子发表者用户 ID"
+      },
+      {
+        "name": "create-time",
+        "type": "string",
+        "required": true,
+        "description": "帖子创建时间戳"
+      },
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "action",
+        "type": "int",
+        "default": 1,
+        "enum": [
+          "1",
+          "2"
+        ],
+        "description": "操作: 1=置顶 2=取消置顶"
+      },
+      {
+        "name": "top-type",
+        "type": "int",
+        "default": 1,
+        "description": "置顶类型: 1=全局置顶"
+      }
+    ]
+  },
+  {
+    "name": "feed.set-feed-essence",
+    "description": "设置/取消精华",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      },
+      {
+        "name": "action",
+        "type": "int",
+        "default": 1,
+        "enum": [
+          "1",
+          "2"
+        ],
+        "description": "操作: 1=设置精华 2=取消精华"
+      }
+    ]
+  },
+  {
+    "name": "feed.push-essence-feed",
+    "description": "推送精华帖通知",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "精华帖 ID (需先设置为精华)"
+      }
+    ]
+  },
+  {
+    "name": "feed.move-feed",
+    "description": "移动帖子到其他版块",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "目标版块 ID"
+      },
+      {
+        "name": "original-channel-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "帖子当前所在版块 ID"
+      },
+      {
+        "name": "feed-id",
+        "type": "string",
+        "required": true,
+        "description": "帖子 ID"
+      }
+    ]
+  },
+  {
+    "name": "feed.delete-and-mute",
+    "description": "搜帖删帖并禁言",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "pattern": "uint",
+        "description": "频道 ID"
+      },
+      {
+        "name": "query",
+        "type": "string",
+        "required": true,
+        "description": "搜索关键词"
+      },
+      {
+        "name": "resume-id",
+        "type": "string",
+        "description": "JSON 模式 resume session ID"
+      },
+      {
+        "name": "pick",
+        "type": "string",
+        "description": "resume 时的选择索引"
+      },
+      {
+        "name": "set",
+        "type": "string",
+        "description": "resume 时传入参数 (key=value)"
+      },
+      {
+        "name": "time-stamp",
+        "type": "string",
+        "description": "禁言时长（秒）"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-guild-info",
+    "description": "查看腾讯频道资料",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-my-join-guild-info",
+    "description": "查看我的腾讯频道列表",
+    "risk": "read",
+    "flags": []
+  },
+  {
+    "name": "manage.get-user-info",
+    "description": "查看用户资料",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "tiny-id",
+        "type": "string",
+        "description": "成员 Tiny ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-guild-member-list",
+    "description": "查看成员列表（分页）",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "next-page-token",
+        "type": "string",
+        "description": "翻页令牌"
+      }
+    ]
+  },
+  {
+    "name": "manage.guild-member-search",
+    "description": "按昵称搜索成员",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "keyword",
+        "type": "string",
+        "required": true,
+        "description": "搜索关键词"
+      },
+      {
+        "name": "num",
+        "type": "int",
+        "default": 20,
+        "description": "每页数量"
+      },
+      {
+        "name": "next-pos",
+        "type": "string",
+        "description": "翻页位置 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-guild-channel-list",
+    "description": "查看版块列表",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.search-guild-content",
+    "description": "搜索腾讯频道/帖子/作者",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "keyword",
+        "type": "string",
+        "required": true,
+        "description": "搜索关键词"
+      },
+      {
+        "name": "scope",
+        "type": "string",
+        "default": "channel",
+        "enum": [
+          "channel",
+          "feed",
+          "author",
+          "all"
+        ],
+        "description": "搜索范围: channel|feed|author|all"
+      },
+      {
+        "name": "next-page-token",
+        "type": "string",
+        "description": "翻页令牌 (从上次返回结果获取)"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-join-guild-setting",
+    "description": "查看腾讯频道加入设置",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-guild-share-url",
+    "description": "获取腾讯频道分享短链",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.get-share-info",
+    "description": "查看分享链接信息",
+    "risk": "read",
+    "flags": [
+      {
+        "name": "url",
+        "type": "string",
+        "required": true,
+        "description": "pd.qq.com 分享链接"
+      }
+    ]
+  },
+  {
+    "name": "manage.kick-guild-member",
+    "description": "踢出成员",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "tiny-id",
+        "type": "string",
+        "description": "成员 Tiny ID (单个踢人)"
+      },
+      {
+        "name": "member-tinyids",
+        "type": "string_array",
+        "description": "成员 Tiny ID 列表 (批量踢人)"
+      },
+      {
+        "name": "blacklist",
+        "type": "bool",
+        "default": false,
+        "description": "同时拉黑该成员"
+      },
+      {
+        "name": "revoke-msgs",
+        "type": "string",
+        "enum": [
+          "3d",
+          "7d",
+          "15d",
+          "30d",
+          "all"
+        ],
+        "description": "撤回该成员的消息: 3d|7d|15d|30d|all"
+      }
+    ]
+  },
+  {
+    "name": "manage.modify-member-shut-up",
+    "description": "禁言/解禁成员",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "tiny-id",
+        "type": "string",
+        "required": true,
+        "description": "成员 Tiny ID"
+      },
+      {
+        "name": "time-stamp",
+        "type": "string",
+        "description": "禁言到期时间戳 (0=解禁)"
+      }
+    ]
+  },
+  {
+    "name": "manage.update-guild-info",
+    "description": "修改腾讯频道名称/简介",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "guild-name",
+        "type": "string",
+        "description": "新腾讯频道名称"
+      },
+      {
+        "name": "guild-profile",
+        "type": "string",
+        "description": "新腾讯频道简介"
+      }
+    ]
+  },
+  {
+    "name": "manage.modify-guild-number",
+    "description": "修改腾讯频道号",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "guild-number",
+        "type": "string",
+        "required": true,
+        "description": "新腾讯频道号"
+      }
+    ]
+  },
+  {
+    "name": "manage.create-guild-role-group",
+    "description": "创建身份组",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "description": "身份组名称（最多 30 个字符，中文算 2 个、英文数字算 1 个）"
+      }
+    ]
+  },
+  {
+    "name": "manage.modify-guild-role-group",
+    "description": "修改身份组",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "role-id",
+        "type": "string",
+        "required": true,
+        "description": "身份组 ID"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "description": "新的身份组名称（最多 30 个字符，中文算 2 个、英文数字算 1 个）"
+      }
+    ]
+  },
+  {
+    "name": "manage.add-role-members",
+    "description": "向身份组添加成员",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "role-id",
+        "type": "string",
+        "required": true,
+        "description": "身份组 ID"
+      },
+      {
+        "name": "tiny-ids",
+        "type": "string_array",
+        "required": true,
+        "description": "成员 Tiny ID 列表"
+      }
+    ]
+  },
+  {
+    "name": "manage.remove-role-members",
+    "description": "从身份组移除成员",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "role-id",
+        "type": "string",
+        "required": true,
+        "description": "身份组 ID"
+      },
+      {
+        "name": "tiny-ids",
+        "type": "string_array",
+        "required": true,
+        "description": "成员 Tiny ID 列表"
+      }
+    ]
+  },
+  {
+    "name": "manage.join-guild",
+    "description": "加入腾讯频道",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.create-channel",
+    "description": "创建子版块",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-name",
+        "type": "string",
+        "required": true,
+        "description": "版块名称"
+      }
+    ]
+  },
+  {
+    "name": "manage.delete-channel",
+    "description": "删除版块",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-ids",
+        "type": "string_array",
+        "required": true,
+        "description": "要删除的版块 ID 列表"
+      }
+    ]
+  },
+  {
+    "name": "manage.modify-channel",
+    "description": "修改版块名称",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "channel-id",
+        "type": "string",
+        "required": true,
+        "description": "版块 ID"
+      },
+      {
+        "name": "channel-name",
+        "type": "string",
+        "required": true,
+        "description": "新版块名称"
+      }
+    ]
+  },
+  {
+    "name": "manage.upload-guild-avatar",
+    "description": "修改腾讯频道头像",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "image-path",
+        "type": "string",
+        "required": true,
+        "description": "头像图片路径"
+      }
+    ]
+  },
+  {
+    "name": "manage.create-theme-private-guild",
+    "description": "创建频道(公开/私密)",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "image-path",
+        "type": "string",
+        "required": true,
+        "description": "头像图片路径"
+      },
+      {
+        "name": "theme",
+        "type": "string",
+        "description": "主题关键词 (用于自动生成名称和简介)"
+      },
+      {
+        "name": "guild-name",
+        "type": "string",
+        "description": "腾讯频道名称 (≤15字)"
+      },
+      {
+        "name": "guild-profile",
+        "type": "string",
+        "description": "腾讯频道简介 (≤300字符)"
+      },
+      {
+        "name": "community-type",
+        "type": "string",
+        "default": "public",
+        "enum": [
+          "public",
+          "private",
+          "公开",
+          "私密"
+        ],
+        "description": "腾讯频道类型: public|private|公开|私密"
+      }
+    ]
+  },
+  {
+    "name": "manage.add-admin",
+    "description": "设置超级管理员",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "tiny-ids",
+        "type": "string_array",
+        "required": true,
+        "description": "成员 Tiny ID 列表"
+      }
+    ]
+  },
+  {
+    "name": "manage.remove-admin",
+    "description": "移除超级管理员",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "tiny-ids",
+        "type": "string_array",
+        "required": true,
+        "description": "成员 Tiny ID 列表"
+      }
+    ]
+  },
+  {
+    "name": "manage.push-group-dm-msg",
+    "description": "向目标用户发送频道私信信息",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "peer-tiny-id",
+        "type": "string",
+        "description": "目标用户的tinyID"
+      },
+      {
+        "name": "source-guild-id",
+        "type": "string",
+        "description": "来源腾讯频道 ID"
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "required": true,
+        "description": "消息文本内容"
+      },
+      {
+        "name": "ref",
+        "type": "int",
+        "description": "通知编号（如 #1），按编号查找本地私信通知自动填充 peer-tiny-id 和 source-guild-id"
+      }
+    ]
+  },
+  {
+    "name": "manage.update-join-guild-setting",
+    "description": "修改腾讯频道加入设置",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      },
+      {
+        "name": "join-type",
+        "type": "string",
+        "required": true,
+        "enum": [
+          "JOIN_GUILD_TYPE_DIRECT",
+          "JOIN_GUILD_TYPE_ADMIN_AUDIT",
+          "JOIN_GUILD_TYPE_DISABLE",
+          "JOIN_GUILD_TYPE_QUESTION_WITH_ADMIN_AUDIT",
+          "JOIN_GUILD_TYPE_MULTI_QUESTION",
+          "JOIN_GUILD_TYPE_QUIZ"
+        ],
+        "description": "加入方式"
+      }
+    ]
+  },
+  {
+    "name": "manage.leave-guild",
+    "description": "退出腾讯频道",
+    "risk": "high-risk-write",
+    "flags": [
+      {
+        "name": "guild-id",
+        "type": "string",
+        "required": true,
+        "description": "腾讯频道 ID"
+      }
+    ]
+  },
+  {
+    "name": "manage.notices-status",
+    "description": "查看频道消息通知状态",
+    "risk": "read",
+    "flags": []
+  },
+  {
+    "name": "manage.check-notices",
+    "description": "检查新的频道通知（增量）",
+    "risk": "read",
+    "flags": []
+  },
+  {
+    "name": "manage.subscribe-notices",
+    "description": "开启频道消息通知",
+    "risk": "write",
+    "flags": []
+  },
+  {
+    "name": "manage.unsubscribe-notices",
+    "description": "关闭频道消息通知",
+    "risk": "write",
+    "flags": []
+  },
+  {
+    "name": "manage.check-new-notices",
+    "description": "检查新的频道通知",
+    "risk": "read",
+    "flags": []
+  },
+  {
+    "name": "manage.get-recent-notices",
+    "description": "获取最近的通知记录（本地）",
+    "risk": "read",
+    "flags": []
+  },
+  {
+    "name": "manage.notify-daemon",
+    "description": "启动后台通知检查服务",
+    "risk": "write",
+    "flags": [
+      {
+        "name": "push-command",
+        "type": "string",
+        "description": "推送命令模板 (如: openclaw message send --message {message})"
+      },
+      {
+        "name": "interval",
+        "type": "int",
+        "default": 5,
+        "description": "轮询间隔秒数 (默认 5)"
+      },
+      {
+        "name": "once",
+        "type": "bool",
+        "default": false,
+        "description": "仅检查一次后退出 (Cron 模式)"
+      },
+      {
+        "name": "__worker__",
+        "type": "bool",
+        "default": false,
+        "description": "内部标记: 作为后台 worker 运行"
+      }
+    ]
+  }
+]

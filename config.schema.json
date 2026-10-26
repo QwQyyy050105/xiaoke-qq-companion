@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "config.schema.json",
+  "title": "Xiaoke public configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "appId": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "pairingHash": {
+      "type": "string",
+      "pattern": "^([a-f0-9]{64})?$"
+    },
+    "proxy": {
+      "type": "string"
+    },
+    "consolePort": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "plugins": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "pattern": "^\\./(plugins|examples)/[^\\\\]+\\.mjs$"
+      }
+    },
+    "modelProvider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "mock",
+            "openai-compatible",
+            "codex"
+          ]
+        },
+        "baseURL": {
+          "type": "string",
+          "format": "uri"
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "envKey": {
+          "type": "string",
+          "pattern": "^[_A-Z][_A-Z0-9]{0,79}$"
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 180000
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 16000
+        },
+        "tokenLimitField": {
+          "enum": [
+            "max_tokens",
+            "max_completion_tokens"
+          ]
+        },
+        "responseFormat": {
+          "enum": [
+            "json_object",
+            "prompt"
+          ]
+        }
+      }
+    },
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliases",
+        "style"
+      ],
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "style": {
+          "type": "string",
+          "maxLength": 1600
+        }
+      }
+    },
+    "participation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "quietStart",
+        "quietEnd",
+        "timeZone"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "mentioned",
+            "contextual",
+            "active"
+          ]
+        },
+        "quietStart": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "quietEnd": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "timeZone": {
+          "type": "string"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "groups",
+        "privateUsers"
+      ],
+      "properties": {
+        "groups": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "privateUsers": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vision",
+        "asr",
+        "tts",
+        "imageGeneration"
+      ],
+      "properties": {
+        "vision": {
+          "type": "boolean"
+        },
+        "asr": {
+          "type": "boolean"
+        },
+        "tts": {
+          "type": "boolean"
+        },
+        "imageGeneration": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

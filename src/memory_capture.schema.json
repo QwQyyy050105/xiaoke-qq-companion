@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "personal": {
+      "type": "array", "maxItems": 8,
+      "items": {
+        "type": "object",
+        "properties": {"text":{"type":"string"},"source":{"type":"string"},"speaker":{"type":"string"},"messageId":{"type":"string"}},
+        "required":["text","source","speaker","messageId"], "additionalProperties":false
+      }
+    },
+    "room": {
+      "type":"array", "maxItems":8,
+      "items": {
+        "type":"object",
+        "properties": {
+          "kind":{"type":"string","enum":["topic","agreement","vocabulary","request"]},
+          "text":{"type":"string"},"source":{"type":"string"},"speaker":{"type":"string"},"messageId":{"type":"string"},
+          "operation":{"type":"string","enum":["remember","resolve","update","delete"]},"targetId":{"type":"string"}
+        },
+        "required":["kind","text","source","speaker","messageId","operation","targetId"],"additionalProperties":false
+      }
+    }
+  },
+  "required":["personal","room"],"additionalProperties":false
+}

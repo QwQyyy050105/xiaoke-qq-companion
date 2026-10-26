@@ -1,0 +1,37 @@
+{
+  "evidence": {
+    "observedDate": "2026-10-24",
+    "cliVersion": "1.0.10",
+    "commands": ["feed.latest-feeds-detail", "feed.hot-feeds-detail"],
+    "operations": "Both initial calls and first-option read-only continuation succeeded. No write shortcut or notification was executed.",
+    "privacy": "Only structural fields retained. All labels, identifiers, links, bodies and counts below are synthetic test values; no real account or post data is stored.",
+    "observedTerminalDifference": "The real read-only done envelope omits data.id and data.result.success. It contains count, feeds containing feed objects, and guild_id.",
+    "writeReceipts": "Write fixtures in tests are synthetic interpretations of documented flows, not live verified receipts."
+  },
+  "waiting": {
+    "success": true,
+    "data": {
+      "status": "waiting",
+      "id": "s-synthetic-read",
+      "step": "1/3",
+      "pending": {
+        "type": "pick",
+        "hint": "合成频道选择",
+        "options": [{"_index": 0, "guild_id": "123", "guild_number": "synthetic", "member_count": 1, "name": "合成频道 A", "role": "synthetic", "share_url": "https://example.invalid/guild"}],
+        "show": ["name", "guild_number"],
+        "resume_command": "not executable evidence"
+      }
+    }
+  },
+  "done": {
+    "success": true,
+    "data": {
+      "status": "done",
+      "result": {
+        "count": 1,
+        "guild_id": "123",
+        "feeds": [{"feed": {"feed_id": "synthetic-feed", "guild_id": "123", "channel_id": "456", "title": "合成帖子", "content": "合成正文", "share_url": "https://example.invalid/post"}}]
+      }
+    }
+  }
+}

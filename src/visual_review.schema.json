@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "status": { "type": "string", "enum": ["pass", "fail", "unverified"] },
+    "notes": { "type": "string" }
+  },
+  "required": ["status", "notes"],
+  "additionalProperties": false
+}
