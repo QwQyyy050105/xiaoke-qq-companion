@@ -167,6 +167,15 @@ test('a real inert child that stays alive after turn completion is reaped prompt
   } })({ text: 'check', structured: true });
   assert.equal((await pending).reply, 'OK');
   assert.ok(Date.now() - started < 5000, 'must return without waiting for the child interval');
-  await closed;
+  // The production cleanup deliberately unrefs the child and destroys its pipes.
+  // Keep this observer alive until close arrives, with a real failure deadline.
+  let reapTimer;
+  try {
+    await Promise.race([closed, new Promise((_, reject) => {
+      reapTimer = setTimeout(() => reject(new Error('child_reaping_timeout')), 5000);
+    })]);
+  } finally {
+    clearTimeout(reapTimer);
+  }
   assert.equal((await readUsage(root)).recent.length, 1);
 });
