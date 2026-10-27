@@ -3,8 +3,6 @@ import { readFile, writeFile, mkdir, mkdtemp, rm, stat, realpath } from 'node:fs
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
-import katex from 'katex';
-import { chromium } from 'playwright-core';
 import { mathChatRows, mathChatGroups } from './math_chat_projection.mjs';
 export { mathChatRows, mathChatGroups } from './math_chat_projection.mjs';
 
@@ -57,6 +55,7 @@ async function fontCss() {
 
 export async function mathHtml(value) {
   const doc=validateMathDocument(value);
+  const {default:katex}=await import('katex');
   const blocks=doc.blocks.map((block,index)=>{
     if(block.type==='text')return `<section class="block prose" data-index="${index}">${escape(block.content).replace(/\n/g,'<br>')}</section>`;
     let html;
@@ -74,6 +73,7 @@ const CHAT_WIDTH=448,CHAT_HEIGHT=640,CHAT_CONTENT_WIDTH=400;
 
 export async function mathChatHtml(value) {
   const doc=validateMathDocument(value);
+  const {default:katex}=await import('katex');
   const blocks=doc.blocks.flatMap((block,index)=>{
     if(block.type==='text')return [`<section class="block prose" data-index="${index}" data-fragment="0">${escape(block.content).replace(/\n/g,'<br>')}</section>`];
     return mathChatRows(block.content).map((row,fragment)=>{
@@ -145,6 +145,8 @@ export async function renderMathChatPreview({root,document,signal}={}) {
     for(const key of ['SystemRoot','WINDIR','PATH','PATHEXT','COMSPEC','NUMBER_OF_PROCESSORS','PROCESSOR_ARCHITECTURE'])if(process.env[key])env[key]=process.env[key];
     abortHandler=()=>void context?.close().catch(()=>{});signal?.addEventListener('abort',abortHandler,{once:true});
     timeout=setTimeout(abortHandler,30000);timeout.unref();
+    const {chromium}=await import('playwright-core');
+    signal?.throwIfAborted();
     context=await chromium.launchPersistentContext(profile,{executablePath:binary,headless:true,viewport:{width:CHAT_WIDTH,height:CHAT_HEIGHT},deviceScaleFactor:2,timeout:10000,javaScriptEnabled:false,serviceWorkers:'block',acceptDownloads:false,env,args:['--disable-background-networking','--disable-sync','--no-first-run','--disable-extensions','--disable-gpu']});
     signal?.throwIfAborted();await context.route('**/*',route=>route.abort());
     const page=context.pages()[0]||await context.newPage();await page.setContent(html,{waitUntil:'load',timeout:10000});await page.evaluate(()=>document.fonts.ready);
@@ -195,6 +197,8 @@ export async function renderMathReply({root,document,signal,sizeProof=false}={})
     abortHandler=()=>void context?.close().catch(()=>{});
     signal?.addEventListener('abort',abortHandler,{once:true});
     timeout=setTimeout(abortHandler,30000);timeout.unref();
+    const {chromium}=await import('playwright-core');
+    signal?.throwIfAborted();
     context=await chromium.launchPersistentContext(profile,{executablePath:binary,headless:true,viewport:{width:WIDTH,height:HEIGHT},deviceScaleFactor:2,
       timeout:10000,javaScriptEnabled:false,serviceWorkers:'block',acceptDownloads:false,env:browserEnv,
       args:['--disable-background-networking','--disable-sync','--no-first-run','--disable-extensions','--disable-gpu']});

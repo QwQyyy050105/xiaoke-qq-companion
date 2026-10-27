@@ -6,7 +6,6 @@ import dns from 'node:dns/promises';
 import net from 'node:net';
 import { createHash, randomUUID } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
-import { chromium as installedChromium } from 'playwright-core';
 import { isPublicMediaAddress } from './safe_media_fetch.mjs';
 
 const DEFAULT_ORIGINS = ['https://www.douyin.com', 'https://v.douyin.com'];
@@ -200,7 +199,7 @@ async function readRenderedPage({ maxText, maxLinks }) {
 }
 
 export class OwnerBrowser {
-  constructor({ root, executablePath, executableSha256, allowedOrigins = DEFAULT_ORIGINS, chromium = installedChromium, lookup = dns.lookup, now = () => new Date(), navigationTimeoutMs = 20000, observationTimeoutMs = 10000, renderReadyTimeoutMs = 8000 } = {}) {
+  constructor({ root, executablePath, executableSha256, allowedOrigins = DEFAULT_ORIGINS, chromium = null, lookup = dns.lookup, now = () => new Date(), navigationTimeoutMs = 20000, observationTimeoutMs = 10000, renderReadyTimeoutMs = 8000 } = {}) {
     this.root = path.resolve(String(root || ''));
     this.executablePath = path.resolve(String(executablePath || ''));
     this.executableSha256 = String(executableSha256 || '').toLowerCase();
@@ -257,7 +256,9 @@ export class OwnerBrowserSession {
     await this.ensureCurrent();
     let context;
     try {
-      context = await runtime.chromium.launchPersistentContext(this.profileDir, {
+      const chromium = runtime.chromium || (await import('playwright-core')).chromium;
+      await this.ensureCurrent();
+      context = await chromium.launchPersistentContext(this.profileDir, {
         executablePath: executable, headless: this.headless, viewport: VIEWPORT,
         javaScriptEnabled: true, serviceWorkers: 'block', acceptDownloads: false,
         permissions: [], bypassCSP: false, ignoreHTTPSErrors: false,

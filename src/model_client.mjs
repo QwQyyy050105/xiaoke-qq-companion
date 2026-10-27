@@ -252,16 +252,25 @@ export function generator(root, config, { spawnProcess = spawn, setTimer = setTi
         clearTimer(timer); input.signal?.removeEventListener('abort', abort);
         if (error) reject(error); else resolve(value);
       };
+      const recycle = () => {
+        // A committed turn need not wait for CLI housekeeping or process exit.
+        // Reap it after settling; late error/close events cannot change the result.
+        for (const cleanup of [() => child.kill(), () => child.stdin.destroy(),
+          () => child.stdout.destroy(), () => child.stderr.destroy(), () => child.unref()]) {
+          try { cleanup(); } catch { /* Best effort after the result is settled. */ }
+        }
+      };
       const stop = code => {
         if (settled) return;
         finish(new Error(code));
-        child.kill(); child.stdin.destroy(); child.stdout.destroy(); child.stderr.destroy(); child.unref();
+        recycle();
       };
       const abort = () => stop('codex_aborted');
       timer = setTimer(() => stop('codex_timeout'), timeoutMs);
       input.signal?.addEventListener('abort', abort, { once: true });
       child.stdout.setEncoding('utf8');
       const readEvent = line => {
+        if (settled) return;
         try {
           const event = JSON.parse(line);
           if (event.type === 'item.completed' && event.item?.type === 'agent_message' && typeof event.item.text === 'string') answer = event.item.text;
@@ -270,13 +279,20 @@ export function generator(root, config, { spawnProcess = spawn, setTimer = setTi
           const code = classifyStructuredModelError(event);
           if (event.type === 'turn.failed') { failed = true; observedFailure = code; }
           else if (!failed && code !== 'unknown') observedFailure = code;
+          // item.completed alone is not a commit: tool turns and partial output
+          // can precede the final response. Preserve final usage before resolving.
+          if (event.type === 'turn.completed' && !failed && (exitCode === null || exitCode === 0) && answer.trim()) {
+            if (input.signal?.aborted) { abort(); return; }
+            finish(null, answer.trim());
+            recycle();
+          }
         } catch {}
       };
       child.stdout.on('data', chunk => {
         if (settled) return;
         buffer += chunk;
         let index;
-        while ((index = buffer.indexOf('\n')) >= 0) {
+        while (!settled && (index = buffer.indexOf('\n')) >= 0) {
           const line = buffer.slice(0, index); buffer = buffer.slice(index + 1);
           readEvent(line);
         }
@@ -291,6 +307,9 @@ export function generator(root, config, { spawnProcess = spawn, setTimer = setTi
         if (settled) return;
         exitCode = code;
         if (buffer.trim()) readEvent(buffer);
+        if (settled) return;
+        // Older CLIs may omit turn.completed; a zero exit plus a complete
+        // agent_message remains the compatibility commit path.
         if (code === 0 && !failed && answer.trim()) finish(null, answer.trim());
         else {
           if (code === 0 && !failed) observedFailure = 'invalid_output';

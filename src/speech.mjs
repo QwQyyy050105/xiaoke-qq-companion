@@ -2,7 +2,8 @@ import {isAbsolute as isPortableAbsolute} from 'node:path';
 import {realpath,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {encode} from 'silk-wasm';
+// The codec is needed only after an actual voice generation passed validation.
+async function encode(...args){return (await import('silk-wasm')).encode(...args);}
 import {inspectVoice} from './voice_library.mjs';
 import {speechEngine} from './qwen_speech.mjs';
 import {MAX_SPEECH_CHARACTERS} from './shared_voice_speech.mjs';

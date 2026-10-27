@@ -14,6 +14,8 @@ npm run init
 npm run demo
 ```
 
+只需要文字聊天、API 模型和本地面板时，可以把安装命令换为 `npm ci --omit=optional`。精简模式省略公式排版、浏览器自动化、SILK 语音编码依赖；具体能力差异与恢复方法见 [安装体积选择](docs/PORTABILITY.md#选择安装体积)。完整开发测试使用标准安装。
+
 打开终端显示的 `http://127.0.0.1:8794`。无需 QQ、API 密钥或付费账号；“本地试聊”使用 Mock，角色与配置可真实保存。按 Ctrl+C 结束。CI 使用 `npm run demo -- --smoke`，成功后自动退出。
 
 ## 接入真实 QQ

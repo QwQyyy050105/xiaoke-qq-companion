@@ -129,7 +129,7 @@ test('successful process exit with invalid JSON or response structure is failure
     await assert.rejects(generator(root, { codexPath: process.execPath }, fake)({ text: PRIVATE, ...item.input }), new RegExp(item.error));
     const state = await readUsage(root); assert.equal(state.recent.length, 1); assert.equal(fake.stats.calls, 1);
     assert.deepEqual(state.recent[0].usage, usage);
-    assert.deepEqual(state.recent[0].outcome, { status: 'failure', code: 'invalid_output', exit_code: 0 });
+    assert.deepEqual(state.recent[0].outcome, { status: 'failure', code: 'invalid_output', exit_code: null });
     assert.doesNotMatch(JSON.stringify(state), new RegExp(PRIVATE));
   });
 });
@@ -144,7 +144,7 @@ test('an error event followed by a valid completed turn records success rather t
   const root = await fixture(t), fake = scriptedSpawn(child => emit(child, [{ type: 'error', code: 'server_error', message: PRIVATE }, ...completed()]));
   await generator(root, { codexPath: process.execPath }, fake)({ text: PRIVATE, structured: true });
   const state = await readUsage(root); assert.equal(state.recent.length, 1);
-  assert.deepEqual(state.recent[0].outcome, { status: 'success', code: null, exit_code: 0 });
+  assert.deepEqual(state.recent[0].outcome, { status: 'success', code: null, exit_code: null });
 });
 
 test('a final unclassified failure does not borrow a different earlier transient error category', async t => {
