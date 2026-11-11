@@ -3,6 +3,8 @@ import {inspectRuntimeCapabilities,ttsCapability,ttsResidentStatus,requireTTS,ef
 import {createOwnerBrowserWorker} from './owner_browser_worker.mjs';
 import {loadEnv,openPublicConfig,isEventAllowed} from './public_config.mjs';
 import {loadExtensions,wrapGenerate} from './extensions.mjs';
+import {createVoiceInput} from './incoming_voice.mjs';
+import {voiceTranscripts} from './rich_context.mjs';
 import {loadCharacter,characterSummary,characterRequest} from './character.mjs';
 import {CharacterGrowth} from './character_growth.mjs';
 import {synthesizeSpeech,speechRequest,verifyPreparedSpeech,isPreparedSpeechCurrent} from './speech.mjs';
@@ -26,6 +28,7 @@ import { GroupRouter } from './routing.mjs';
 import { GroupInbox, OrderedGroupDispatch } from './inbox.mjs';
 import { MediaLibrary } from './media.mjs';
 import { observedContent, referenceForObservation } from './conversation_input.mjs';
+import { hasVoiceTranscript } from './rich_context.mjs';
 import { deliveryPlan } from './delivery_plan.mjs';
 import { StickerCreation } from './sticker_creation.mjs';
 import { createImage } from './image_worker.mjs';
@@ -181,6 +184,7 @@ const speechJobs = await SpeechJobs.open({dataDir:join(root,'data'),
   verifyPrepared:(prepared,options)=>verifyPreparedSpeech(root,prepared,options),
   onError:()=>warn('语音任务记录暂未完成，未重发结果。')});
 const cancelSpeechForControl = event => {
+  if (hasVoiceTranscript(event)) return;
   if(!companion.canReply(event))return;
   const text=String(event.content||'').trim();
   if(!['/forget','/reset'].includes(text)&&!/^\/quiet(?:\s|$)/i.test(text)&&! /^(?:小柯[，,\s]*)?安静一会儿[。！!～~]?$/.test(text))return;
@@ -202,6 +206,14 @@ ownerBrowser = await OwnerBrowserService.open({ root, config, runWorker:scopeAcc
 const channelMedia = new ChannelMedia({root,getCatalog:event=>media.contextFor(event).images,prepare:(...args)=>media.prepare(...args)});
 const channels = await new ChannelService({ root, generate, run:(args,options={})=>scopeAccess.run(options,input=>channelCli(root,args,input)), getOwner: () => companion.state.owner, media:channelMedia }).init();
 const router = new GroupRouter({ decideWithReply: true, ambientParticipation: true, aliases:()=>config.character.aliases });
+const recognizeVoice = extensions.supports('asr')
+  ? request => extensions.call('asr', request)
+  : process.platform === 'win32' ? async request => (await import('./windows_speech_asr.mjs')).recognizeWindowsSpeech(request) : null;
+const voiceInput = createVoiceInput({
+  enabled:event => config.media.asr && recognizeVoice && companion.canReply(event),
+  recognize:recognizeVoice,
+  onError:() => warn('入站语音转写暂不可用。')
+});
 const inbox = new GroupInbox({ handle: event => processMessage(event), batchParticipants: true, coalesceWhileBusy: true, delayMs: 350, gapMs: 0 });
 const orderedDispatch = new OrderedGroupDispatch();
 const routeTasks = new Set();
@@ -274,8 +286,8 @@ try {
     feedback: () => readJson(join(root, 'data', 'feedback.json'), []),
     settings: () => settings.get(), updateSettings: body => settings.update(body),
     publicConfig:()=>configStore.get(),
-    updatePublicConfig:async body=>{if('plugins' in body)throw Error('plugins_require_restart');await applyRuntimeConfig({store:configStore,config,patch:body,guard:scopeAccess,inbox,social,onScopeChanged:async()=>{research.clearPending();await memoryCapture?.cancelPending();},onRevoked:async event=>{companion.invalidateDeliveries(event);await speechJobs.invalidate(event).catch(()=>{});}});speech.applyResourceControl();updateParticipation();return {ok:true};},
-    capabilities:async()=>{const runtime=await inspectRuntimeCapabilities(root,config);return {official_qq_transport:true,character_card:true,web_search:config.modelProvider.type==='codex'&&settings.get().allowWebSearch,vision:runtime.vision.available,asr:config.media.asr&&extensions.supports('asr'),tts:ttsCapability(config,speech).available,native_image_generation:runtime.image_generation.available,runtime,plugins:extensions.ids};},
+    updatePublicConfig:async body=>{if('plugins' in body)throw Error('plugins_require_restart');await applyRuntimeConfig({store:configStore,config,patch:body,guard:scopeAccess,inbox,social,onScopeChanged:async()=>{voiceInput.reset();research.clearPending();await memoryCapture?.cancelPending();},onRevoked:async event=>{companion.invalidateDeliveries(event);await speechJobs.invalidate(event).catch(()=>{});}});if(!config.media.asr)voiceInput.reset();speech.applyResourceControl();updateParticipation();return {ok:true};},
+    capabilities:async()=>{const runtime=await inspectRuntimeCapabilities(root,config);return {official_qq_transport:true,character_card:true,web_search:config.modelProvider.type==='codex'&&settings.get().allowWebSearch,vision:runtime.vision.available,asr:Boolean(config.media.asr && recognizeVoice),tts:ttsCapability(config,speech).available,native_image_generation:runtime.image_generation.available,runtime,plugins:extensions.ids};},
     groups: () => { const lookup = new Map(directory.snapshot().map(row => [row.scope, row])); return social.snapshot().map(row => ({ ...row, directory: lookup.get(row.scope) || { status: 'not_queried' } })); },
     groupAction: (scope, action) => social.control(scope, action),
     vocabulary: () => vocabulary.snapshot(), reviewVocabulary: (scope, id, options) => vocabulary.review(scope, id, options),
@@ -499,6 +511,13 @@ async function processAuthorizedMessage(event) {
     return result;
   };
   try {
+    // Machine transcripts are chat input. Only a separate text message can authorize a local job.
+    if (hasVoiceTranscript(event)) {
+      const result = await companion.handle(event, content => deliver(content));
+      if (sequence && event.group_openid) await social.markReplied(event.group_openid, {social:result?.social, engaged:true});
+      else if (result?.status === 'silent' && event.group_openid) await social.markObserved(event.group_openid, {social:result.social});
+      return result;
+    }
     if(companion.canReply(event)&&characterRequest(event.content)){await send(characterSummary(await loadCharacter(root))+'\n\n'+characterGrowth.summary(event));return {status:'character_card'};}
     const work = await ownerWork.handle(event, String(event.content || ''));
     if (work.handled) { if (companion.canReply(event) && work.reply) await send(work.reply); return { status: 'owner_work' }; }
@@ -573,9 +592,13 @@ async function processAuthorizedMessage(event) {
 }
 async function handleIncoming(event) {
   if(!isEventAllowed(config,event))return;
-  const named=config.character.aliases.some(alias=>String(event.content||'').includes(alias));
+  const named=config.character.aliases.some(alias=>String(event.content||'').includes(alias)) || voiceTranscripts(event).some(text => router.calledByName(text));
   if(event.group_openid&&config.participation.mode==='mentioned'&&event.explicit_mention!==true&&!named)return;
   event = { ...event, _receivedAt: Date.now() };
+  if (event.attachments?.length) {
+    event = await voiceInput.apply(event, scopeAccess.assert().controller.signal);
+    scopeAccess.assert();
+  }
   if (!event.group_openid) {
     event = { ...event, content: observedContent(event) };
     cancelSpeechForControl(event);
@@ -630,7 +653,7 @@ async function handleIncoming(event) {
     log('群聊触发：' + (decision.addressed ? decision.reason : 'same_speaker_burst'));
     // Keep a continuation separate from another member's simultaneous question.
     const queuedContent = isMathContinuation(content) ? '/mathnext' : content;
-    if (channels.accepts({ ...event, content: queuedContent })) { void processMessage({ ...event, content: queuedContent }).catch(() => warn('频道任务未完成。')); return; }
+    if (!hasVoiceTranscript(event) && channels.accepts({ ...event, content: queuedContent })) { void processMessage({ ...event, content: queuedContent }).catch(() => warn('频道任务未完成。')); return; }
     void inbox.enqueue({ ...event, content: queuedContent, allow_silence: ['ambient_candidate','contextual_candidate','classified_continuation','clear_continuation'].includes(decision.reason) }).then(async result => {
       if (result?.status === 'expired') { log('群聊回合已超过 QQ 回复时限，原消息仍保留在上下文。'); return; }
       if (result?.status !== 'busy' || result.reason !== 'queue_capacity' || Date.now() - event._receivedAt >= 270000) return;
@@ -661,6 +684,7 @@ try {
   process.exitCode = 1;
 }
 client.stop();
+voiceInput.reset();
 creation.stop();
 social.stop(); await stopSpeechJobs(); clearInterval(speechControlTimer); stopSpeech(root); await memoryCapture?.close();
 research.stop(); directory.stop(); await ownerWork.stop(); await ownerBrowser.stop(); await channels.stop(); await localConsole?.close();

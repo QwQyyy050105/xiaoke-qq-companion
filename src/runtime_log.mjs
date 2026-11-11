@@ -7,6 +7,7 @@ const OWNER = 'qq_companion_runtime_log_v1';
 const DEFAULT_BYTES = 512 * 1024;
 const DEFAULT_RETAIN = 3;
 const LABELS = Object.freeze({
+  incoming_voice_failed:'入站语音转写暂不可用',
   suppressed: '非诊断文本已省略', startup: '桥接启动', paired: '已绑定主人', pairing: '等待本机配对',
   setup_required: '需要本机配置', singleton_rejected: '已有实例或锁异常', authenticated: 'QQ 凭据校验通过',
   auth_failed: 'QQ 凭据校验失败', auth_help: '核对同一官方应用的 QQ_APP_ID 与 QQ_APP_SECRET，然后重启', connected: 'QQ 已连接', disconnected: 'QQ 连接断开',
@@ -23,6 +24,7 @@ const LABELS = Object.freeze({
   status_failed: '运行状态未保存', feedback_failed: '技术反馈未保存'
 });
 const EXACT = new Map([
+  ['入站语音转写暂不可用。', 'incoming_voice_failed'],
   ['小柯 QQ 桥接启动。关闭这个窗口会下线；按 Ctrl+C 可正常退出。', 'startup'],
   ['已绑定主人，等待消息。', 'paired'], ['请在已授权 QQ 私聊发送 /pair 加上本机配置的配对口令。', 'pairing'],
   ['已有实例或锁状态异常，无法启动第二个实例。', 'singleton_rejected'],

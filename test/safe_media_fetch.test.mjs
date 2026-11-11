@@ -2,10 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
-import { fetchMediaImage,isPublicMediaAddress,validateMediaUrl } from '../src/safe_media_fetch.mjs';
+import { fetchMediaImage,fetchMediaVoice,isPublicMediaAddress,validateMediaUrl } from '../src/safe_media_fetch.mjs';
 import { MAX_IMAGE_BYTES } from '../src/media_image.mjs';
 const PNG=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l2kAAAAASUVORK5CYII=','base64');
 const lookup=async()=>[{address:'8.8.8.8',family:4}];
+test('incoming voice reads a bounded WAV and rejects false audio, oversized chunks and invalid SILK frames', async () => {
+  const raw = Buffer.from('UklGRiYAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQIAAAAAAA==','base64');
+  const read = r => fetchMediaVoice('https://gchat.qpic.cn/voice', {lookup, request:transport([r])});
+  const voice = await read({body:raw, headers:{'content-type':'audio/wav'}});
+  assert.equal(voice.mime, 'audio/wav');
+  for (const response of [
+    {body:raw, headers:{'content-type':'text/html'}},
+    {body:PNG, headers:{'content-type':'audio/wav'}},
+    {chunks:[raw, Buffer.alloc(3*1024*1024)], headers:{'content-type':'audio/wav'}},
+    {body:Buffer.from('#!SILK_V3\u00ffinvalid'), headers:{'content-type':'audio/silk'}}
+  ]) await assert.rejects(read(response), /voice_/);
+});
 function transport(responses,calls=[]) {
   return (options,callback)=>{
     calls.push(options);const request=new EventEmitter();request.destroy=()=>{};

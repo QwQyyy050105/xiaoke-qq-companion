@@ -43,11 +43,19 @@ export default {
 | afterGenerate | `(ChatResult) => ChatResult` | 每次生成之后，保持结构化字段 |
 | chat | `(ConversationInput) => ChatResult` | 可替换生成器，结构化结果校验后才交付 |
 | vision | `(request) => {status, description, ...}` | 可调用契约；默认 unsupported；API 模型另支持真实附图 |
-| asr | `(request) => {status, text, ...}` | 可调用契约；默认 unsupported；未自动接 QQ 音频 |
+| asr | `({buffer, mime, fileName, signal}) => {status, text}` | QQ 入站语音缺少平台转写时自动调用；由面板的入站语音开关控制 |
 | tts | `(request) => {status, ...}` | 可调用契约；默认 unsupported；未自动合成/上传 |
 | search | `(request) => {status, results, ...}` | 可调用契约；默认 unsupported；未自动规划工具循环 |
 
-后四项是明确的扩展接口，不宣称已完成自动媒体链路。调用 `extensions.call('asr', request)` 未配置时返回 `{status:'unsupported', capability:'asr'}`。配置示例 `plugins:["./examples/plugins/greeting.mjs"]` 实际进入 `beforeGenerate`。每项独占能力拒绝重复提供者；前后钩子按配置顺序执行。
+独立调用 `extensions.call('asr', request)` 未注册插件时返回 `{status:'unsupported', capability:'asr'}`。发送到 QQ 的实际消息走下方接收路径。每项独占能力使用一个提供者，前后钩子按配置顺序执行。
+
+## 接收语音
+
+已配对主人发来的语音和授权群的语音附在当前事件的 `attachments`。小柯优先使用 QQ 提供的 `asr_refer_text`。群聊采用“只回复叫名或 @”时，用 QQ 的 @ 功能发语音可以明确寻址；QQ 自带转写中叫到小柯也会进入叫名判断。[官方单聊事件](https://bot.q.qq.com/wiki/develop/api-v2/autogen/event/c2c_message_create.html) · [官方群 @ 事件](https://bot.q.qq.com/wiki/develop/api-v2/autogen/event/group_at_message_create.html)
+
+Windows 使用者在配置页勾选“入站语音转写”，点击“验证并保存全部配置”。QQ 没有提供文字时，小柯优先取 `voice_wav_url`；仅有原始音频时读取 `url`。识别器从内存读取 WAV。原始 SILK 需要标准安装的 `silk-wasm`，它会把有效帧转成 WAV。识别语言默认 `zh-CN`，其他已安装的 Windows 桌面语音识别语言可以通过 `XIAOKE_ASR_LANGUAGE` 指定。成功转写带“可能有识别误差”进入原会话，再由原聊天模型回复。默认关闭的开关只控制额外音频处理。语音可以私聊提问或在群里接话。需要执行主人任务、配对或审批时，请单独发文字命令。涉及人名、时间和金额而听法不清时，小柯会先复述待确认的部分。
+
+自建识别器可在任何系统注册一个 `asr` 插件，加入 `config.local.json` 的 `plugins` 后重启。显式配置的插件优先。插件收到最多 3 MiB 的已校验字节、实际 MIME、常规文件名与取消信号，成功返回 `{status:"ok",text:"转写内容"}`；无语音可返回 `{status:"no_speech"}`。每条来信处理第一段语音，整次识别期限为 20 秒。内置 Windows 识别在本机完成；插件若调用云服务，应在其部署说明中标明音频去向。可以参考[本机识别插件](../examples/plugins/windows_speech_asr.mjs)。
 
 ## 更多平台与设备
 

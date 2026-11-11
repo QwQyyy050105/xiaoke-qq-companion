@@ -1,4 +1,5 @@
 import {characterRequest} from './character.mjs';
+import {voiceTranscripts} from './rich_context.mjs';
 import { createHash } from 'node:crypto';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -110,6 +111,7 @@ export class GroupRouter {
     if (mentionOther(event)) return { addressed: false, reason: 'mentions_other_member' };
     if(characterRequest(text))return {addressed:true,reason:'called_by_name'};
     const unquoted = unquote(text);
+    if (voiceTranscripts(event).some(transcript => this.calledByName(unquote(transcript)))) return {addressed:true, reason:'called_by_name'};
     if (this.calledByName(unquoted)) return { addressed: true, reason: 'called_by_name' };
     const current = this.now();
     const recent = at => { const age = current - timeOf(at); return Number.isFinite(age) && age >= 0 && age <= CONTEXT_WINDOW; };

@@ -1,11 +1,15 @@
 import { quoteContext, messageIndex, referencedMessageId } from './media.mjs';
-import { richMessageContext, readableFaces, voiceTranscripts } from './rich_context.mjs';
+import { richMessageContext, readableFaces, voiceTranscripts, isVoiceAttachment } from './rich_context.mjs';
 
 export function observedContent(event) {
   const raw = readableFaces(event.content);
   const transcripts=voiceTranscripts(event);
-  const text=raw+(transcripts.length&&!raw.includes('[语音转写')?'\n[语音转写，可能有识别误差] '+transcripts.join('\n'):'');
+  const marker = '[语音转写，可能有识别误差] ';
+  const text = transcripts.length && !raw.startsWith(marker)
+    ? marker + transcripts.join('\n') + (raw.trim() ? '\n[随语音发送的文字] ' + raw : '')
+    : raw;
   if (text.trim()) return text;
+  if (event.attachments?.some?.(isVoiceAttachment)) return '[收到语音，暂时没有可用的转写]';
   return Array.isArray(event.attachments) && event.attachments.length ? '[收到图片或附件]' : text;
 }
 

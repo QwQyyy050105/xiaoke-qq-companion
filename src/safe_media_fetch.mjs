@@ -2,6 +2,7 @@ import dns from 'node:dns/promises';
 import https from 'node:https';
 import net from 'node:net';
 import { inspectImage, MAX_IMAGE_BYTES } from './media_image.mjs';
+import { inspectVoice } from './voice_library.mjs';
 
 const blocked = new net.BlockList();
 for (const [network, prefix] of [['0.0.0.0',8],['10.0.0.0',8],['100.64.0.0',10],['127.0.0.0',8],['169.254.0.0',16],['172.16.0.0',12],['192.0.0.0',24],['192.0.2.0',24],['192.88.99.0',24],['192.168.0.0',16],['198.18.0.0',15],['198.51.100.0',24],['203.0.113.0',24],['224.0.0.0',3]]) blocked.addSubnet(network, prefix, 'ipv4');
@@ -28,7 +29,34 @@ const limited = (promise, milliseconds) => {
   return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('media_fetch_timeout')), milliseconds); })]).finally(() => clearTimeout(timer));
 };
 
-function requestImage(url, address, budget, request) {
+const imageFormat = {
+  accept:'image/png,image/jpeg,image/gif,image/webp', maxBytes:MAX_IMAGE_BYTES, sizeError:'media_image_size',
+  inspect:(bytes, type) => inspectImage(bytes, type, {allowExtended:true})
+};
+const voiceFormat = {
+  accept:'audio/*,application/octet-stream', maxBytes:3 * 1024 * 1024, sizeError:'voice_invalid_bytes',
+  inspect(bytes, type) {
+    if (type && !/^(?:audio\/[^;\s]+|application\/octet-stream)(?:\s*;|$)/i.test(type)) throw Error('voice_invalid_type');
+    const voice = inspectVoice(bytes);
+    if (voice.mime === 'audio/silk') {
+      let pos = bytes[0] === 2 ? 1 : 0;
+      if (bytes.toString('ascii', pos, pos + 9) !== '#!SILK_V3') throw Error('voice_invalid_silk');
+      pos += 9;
+      let frames = 0;
+      while (pos + 2 <= bytes.length) {
+        const length = bytes.readInt16LE(pos);
+        pos += 2;
+        if (length === -1 && pos === bytes.length) break;
+        if (length <= 0 || pos + length > bytes.length || ++frames > 9000) throw Error('voice_invalid_silk');
+        pos += length;
+      }
+      if (!frames || pos !== bytes.length) throw Error('voice_invalid_silk');
+    }
+    return voice;
+  }
+};
+
+function requestMedia(url, address, budget, request, format, signal) {
   return new Promise((resolve, reject) => {
     let req, response, settled = false;
     const finish = (error, result) => {
@@ -39,8 +67,8 @@ function requestImage(url, address, budget, request) {
     try {
       req = request({
         protocol: 'https:', hostname: url.hostname, port: 443, path: url.pathname + url.search,
-        method: 'GET', servername: url.hostname, rejectUnauthorized: true, agent: false,
-        headers: { Accept: 'image/png,image/jpeg,image/gif,image/webp', 'Accept-Encoding': 'identity', 'User-Agent': 'QQ-Companion/1.0' },
+        method: 'GET', servername: url.hostname, rejectUnauthorized: true, agent: false, signal,
+        headers: { Accept: format.accept, 'Accept-Encoding': 'identity', 'User-Agent': 'QQ-Companion/1.0' },
         // Pin the already validated address while retaining the original TLS hostname.
         lookup: (_host, options, callback) => {
           if (typeof options === 'function') { callback = options; options = {}; }
@@ -58,17 +86,17 @@ function requestImage(url, address, budget, request) {
         }
         if (res.statusCode !== 200) { finish(new Error(`media_fetch_http_${res.statusCode}`)); res.destroy(); return; }
         if (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity') { finish(new Error('media_compressed_response')); res.destroy(); return; }
-        if (Number(res.headers['content-length']) > MAX_IMAGE_BYTES) { finish(new Error('media_image_size')); res.destroy(); return; }
+        if (Number(res.headers['content-length']) > format.maxBytes) { finish(new Error(format.sizeError)); res.destroy(); return; }
         const chunks = []; let size = 0;
         res.on('data', chunk => {
           if (settled) return;
           size += chunk.length;
-          if (size > MAX_IMAGE_BYTES) { finish(new Error('media_image_size')); res.destroy(); return; }
+          if (size > format.maxBytes) { finish(new Error(format.sizeError)); res.destroy(); return; }
           chunks.push(chunk);
         });
         res.on('end', () => {
           if (settled) return;
-          try { finish(null, { image: inspectImage(Buffer.concat(chunks), res.headers['content-type'] || '',{allowExtended:true}) }); }
+          try { finish(null, { media: format.inspect(Buffer.concat(chunks), res.headers['content-type'] || '') }); }
           catch (error) { finish(error); }
         });
       });
@@ -77,10 +105,11 @@ function requestImage(url, address, budget, request) {
   });
 }
 
-export async function fetchMediaImage(raw, { lookup = dns.lookup, request = https.request, timeoutMs = 20000 } = {}) {
+async function fetchMedia(raw, format, { lookup = dns.lookup, request = https.request, timeoutMs = 20000, signal } = {}) {
   const deadline = Date.now() + Math.min(20000, Math.max(1000, timeoutMs));
   let url = validateMediaUrl(raw);
   for (let hop = 0; hop <= 3; hop++) {
+    signal?.throwIfAborted();
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw new Error('media_fetch_timeout');
     const addresses = await limited(lookup(url.hostname, { all: true, verbatim: true }), Math.min(5000, remaining));
@@ -88,15 +117,19 @@ export async function fetchMediaImage(raw, { lookup = dns.lookup, request = http
     const ordered = addresses.filter(item => net.isIP(item.address) === 4).concat(addresses.filter(item => net.isIP(item.address) === 6)).slice(0,4);
     let result, lastError;
     for (const item of ordered) {
+      signal?.throwIfAborted();
       const budget = Math.min(7000, deadline - Date.now());
       if (budget <= 0) throw new Error('media_fetch_timeout');
-      try { result = await requestImage(url, item.address, budget, request); break; }
+      try { result = await requestMedia(url, item.address, budget, request, format, signal); break; }
       catch (error) { lastError = error; if (!['media_fetch_network','media_fetch_timeout'].includes(error.message)) throw error; }
     }
     if (!result) throw lastError || new Error('media_fetch_network');
-    if (result.image) return result.image;
+    if (result.media) return result.media;
     if (typeof result.redirect !== 'string' || !result.redirect) throw new Error('media_invalid_redirect');
     url = validateMediaUrl(new URL(result.redirect, url).href);
   }
   throw new Error('media_too_many_redirects');
 }
+
+export const fetchMediaImage = (url, options) => fetchMedia(url, imageFormat, options);
+export const fetchMediaVoice = (url, options) => fetchMedia(url, voiceFormat, options);

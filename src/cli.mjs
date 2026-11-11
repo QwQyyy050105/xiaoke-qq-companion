@@ -62,7 +62,7 @@ if(command==='init'){
  const generate=()=>wrapGenerate(chatGenerator(root,config),extensions);
  const server=await startLocalConsole({root,port:flags.has('--smoke')?0:config.consolePort,callbacks:{
    publicConfig:()=>store.get(),updatePublicConfig:async patch=>{if('plugins'in patch)throw Error('plugins_require_restart');Object.assign(config,await store.update(patch));if(demo)config.modelProvider={...config.modelProvider,type:'mock'};return {ok:true,restart:[]};},
-   capabilities:()=>({official_qq_transport:!demo,character_card:true,chat:true,model:config.modelProvider.type,vision:!demo&&config.media.vision,asr:extensions.supports('asr'),tts:extensions.supports('tts'),web_search:config.modelProvider.type==='codex',native_image_generation:false,plugins:extensions.ids}),
+   capabilities:()=>({official_qq_transport:!demo,character_card:true,chat:true,model:config.modelProvider.type,vision:!demo&&config.media.vision,asr:!demo && config.media.asr && (extensions.supports('asr') || process.platform==='win32'),tts:extensions.supports('tts'),web_search:config.modelProvider.type==='codex',native_image_generation:false,plugins:extensions.ids}),
    demoChat:async body=>{if(typeof body.text!=='string'||!body.text.trim()||body.text.length>2000)throw Error('invalid_demo_text');return generate()({text:body.text,history:[],memory:[]});},
    settings:()=>({proactiveEnabled:false,allowWebSearch:false,spontaneousStickers:false,allowImageCreation:false})}});
  if(demo&&config.plugins.length)console.log('Configured plugins disabled in offline demo.');

@@ -10,6 +10,7 @@ import { normalizeMathDocument, mathDocumentText } from './math_document.mjs';
 import { validateStickerSelection } from './sticker_context.mjs';
 import { PersonalMemoryBridge } from './personal_memory_bridge.mjs';
 
+import { hasVoiceTranscript } from './rich_context.mjs';
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const senderId = event => event.group_openid
   ? event.author?.member_openid || event.author?.id
@@ -400,11 +401,13 @@ export class Companion {
     const isGroup = Boolean(event.group_openid);
     const key = eventKey(event);
     if (!id || !event.id || (!mentionUpgrade && this.state.seen.includes(key)) || (event.chat_type === 'group' && !isGroup)) return;
-    const text = (event.content || '').trim();
+    const rawText = (event.content || '').trim();
+    const voiceTurn = hasVoiceTranscript(event);
+    const text = voiceTurn && !rawText.startsWith('[语音转写') ? '[本轮含机器转写] ' + rawText : rawText;
     const turn = turnMessagesFor(event);
     if (turn.length > 1 && turn.some(message => /^\s*\//.test(message.content) || /^(?:安静一会儿|出来聊聊)[。！!～~]?$/.test(message.content.trim()))) throw new Error('invalid_group_turn');
     if (!isGroup && !this.state.owner) {
-      const candidate = text.startsWith('/pair ') ? hash(text.slice(6).trim()) : '';
+      const candidate = !voiceTurn && text.startsWith('/pair ') ? hash(text.slice(6).trim()) : '';
       if (!candidate) return send('我收到你的消息啦。这里还没完成主人配对，请把设置时提供的 /pair 配对码发到这个私聊，连上后就能直接聊天。');
       if (!this.pairingHash || !/^[a-f0-9]{64}$/.test(this.pairingHash)) return send('本机配对设置不完整，需要先修复设置。');
       if (!timingSafeEqual(Buffer.from(candidate), Buffer.from(this.pairingHash))) return send('这个配对码没有匹配，请核对本机设置提供的配对码，再在这里发送。');
