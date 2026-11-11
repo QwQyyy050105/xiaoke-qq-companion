@@ -10,7 +10,7 @@ import { normalizeMathDocument, mathDocumentText } from './math_document.mjs';
 import { validateStickerSelection } from './sticker_context.mjs';
 import { PersonalMemoryBridge } from './personal_memory_bridge.mjs';
 
-import { hasVoiceTranscript } from './rich_context.mjs';
+import { hasVoiceTranscript, hasOnlyUntranscribedVoice, UNTRANSCRIBED_VOICE } from './rich_context.mjs';
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const senderId = event => event.group_openid
   ? event.author?.member_openid || event.author?.id
@@ -253,7 +253,7 @@ export class Companion {
     return [...legacy.filter(note => !facts.some(fact => fact.text === note)), ...facts];
   }
   async captureMemory(event) {
-    if (!this.memoryCapture) return;
+    if (!this.memoryCapture || hasOnlyUntranscribedVoice(event)) return;
     if (this.personalMemoryBridge.enabled && this.personalMemoryBridge.relevantPending(event).length) return;
     const member = senderId(event);
     if (!member || !event.id) return;
@@ -401,7 +401,8 @@ export class Companion {
     const isGroup = Boolean(event.group_openid);
     const key = eventKey(event);
     if (!id || !event.id || (!mentionUpgrade && this.state.seen.includes(key)) || (event.chat_type === 'group' && !isGroup)) return;
-    const rawText = (event.content || '').trim();
+    const unheardVoice = hasOnlyUntranscribedVoice(event);
+    const rawText = (event.content || '').trim() || (unheardVoice ? UNTRANSCRIBED_VOICE : '');
     const voiceTurn = hasVoiceTranscript(event);
     const text = voiceTurn && !rawText.startsWith('[语音转写') ? '[本轮含机器转写] ' + rawText : rawText;
     const turn = turnMessagesFor(event);
@@ -465,7 +466,7 @@ export class Companion {
     if (this.personalMemoryBridge.enabled && await this.personalMemoryBridge.amend(event, send)) return;
     if (text === '/help') return send((isGroup ? '群里可以接着话题聊。可见群消息作为本群共享上下文；个人记忆按群和成员分别保存，与私聊隔离。' : '直接发文字就能聊。\n主人私聊工作：/work 任务内容 创建独立文本文件提案；/workstatus [编号] 查看；/answer 编号 答案 补充；/approve 编号 明确批准；/reject 编号 拒绝；/cancel 编号 取消。审批仅写入该任务独立工作目录，不执行shell。') + '\n/remember 内容：长期记住\n/memory [页码]：查看当前对话记忆和编号\n/memory-edit 编号 新内容：编辑一条保存的笔记\n/memory-delete 编号：删除一条保存的笔记\n/roommemory：查看本群话题、约定、词汇与未完成需求\n/reset：清空当前最近聊天及本群共享上下文和话题记忆\n/forget：清空当前聊天、个人记忆及本群共享上下文和话题记忆\n聊天保存在本项目的本机资料目录；生成回复时会把当前授权会话的上下文与记忆交给你配置的模型服务。Mock 演示不会上传。');
     if (!isGroup) await this.captureMemory(event);
-    const prepared = await this.prepareInput(event);
+    const prepared = unheardVoice ? null : await this.prepareInput(event);
     try {
     const extra = prepared && typeof prepared === 'object' && !Array.isArray(prepared) ? { ...prepared } : {};
     if (this.characterGrowth) extra.characterGrowth = this.characterGrowth.snapshot(event);
@@ -507,11 +508,16 @@ export class Companion {
       room.memory = mergeRoomMemory(room.memory, explicitRoomCandidates(memorySources, { allowRequests: true }), memorySources, this.now());
       await this.persist();
     }
-    const progressTimer = this.progressDelayMs > 0 && isGroup && event.explicit_mention !== false && event.allow_silence !== true ? setTimeout(() => {
+    const progressTimer = !unheardVoice && this.progressDelayMs > 0 && isGroup && event.explicit_mention !== false && event.allow_silence !== true ? setTimeout(() => {
       progressDelivery = Promise.resolve().then(() => send('还在想这句')).catch(() => {});
     }, this.progressDelayMs) : null;
     const generationStarted = this.now();
-    try { generated = await this.generate({ ...extra, messageId:event.id, history: multipleParticipants ? [] : context.history, memory: multipleParticipants ? [] : this.personalMemory(event.group_openid, id, context.memory, turnText), text, ...((isGroup?this.room(event.group_openid):context).expression?{expressionState:expressionView((isGroup?this.room(event.group_openid):context).expression,this.now())}:{}),
+    if (unheardVoice) {
+      generated = isGroup && event.allow_silence === true && event.explicit_mention !== true
+        ? {reply:'', social:{action:'silent'}}
+        : {reply:'这条语音我没听到内容，打几个字给我？'};
+    }
+    try { generated ??= await this.generate({ ...extra, messageId:event.id, history: multipleParticipants ? [] : context.history, memory: multipleParticipants ? [] : this.personalMemory(event.group_openid, id, context.memory, turnText), text, ...((isGroup?this.room(event.group_openid):context).expression?{expressionState:expressionView((isGroup?this.room(event.group_openid):context).expression,this.now())}:{}),
       ...(isGroup ? { roomHistory, roomMemory: this.groupMemory(event.group_openid, { query: turnText }), speaker, participants, turnMessages }
         : this.memoryCapture ? { roomMemory: this.privateRoomMemory({ query: turnText }) } : {}) }); }
     catch (error) { generationError = error; }
@@ -671,7 +677,7 @@ export class Companion {
     return { status: 'replied', ...(social ? { social } : {}) };
     } finally {
       // Prepared images also need releasing when validation or persistence exits before generation.
-      await this.releaseInput(prepared, event);
+      if (!unheardVoice) await this.releaseInput(prepared, event);
     }
   }
 }

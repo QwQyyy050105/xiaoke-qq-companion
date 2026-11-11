@@ -1,5 +1,5 @@
 import {characterRequest} from './character.mjs';
-import {voiceTranscripts} from './rich_context.mjs';
+import {voiceTranscripts, hasOnlyUntranscribedVoice} from './rich_context.mjs';
 import { createHash } from 'node:crypto';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -109,6 +109,7 @@ export class GroupRouter {
       return { addressed: true, reason: 'references_bot_reply' };
     }
     if (mentionOther(event)) return { addressed: false, reason: 'mentions_other_member' };
+    if (hasOnlyUntranscribedVoice(event)) return {addressed:false, reason:'untranscribed_group_voice'};
     if(characterRequest(text))return {addressed:true,reason:'called_by_name'};
     const unquoted = unquote(text);
     if (voiceTranscripts(event).some(transcript => this.calledByName(unquote(transcript)))) return {addressed:true, reason:'called_by_name'};

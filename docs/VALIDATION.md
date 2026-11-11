@@ -30,3 +30,5 @@ Windows 11，Node.js 24.22.1。将公开源码导出到含中文、空格和 `#`
 Windows、Node 24 和已安装的中文桌面识别器实测通过。用同一条合成中文短句分别生成 PCM WAV 和 QQ SILK，两次都识别出了原句。公开模板的 `node --test "test/*.test.mjs"` 共 1199 项通过；发布扫描检查了 250 个候选文件。
 
 `node --test test/incoming_voice.test.mjs test/safe_media_fetch.test.mjs test/qq_startup_recovery.test.mjs` 可重放缓存、撤销授权、超时、错误格式及端到端群聊和私聊。网关测试实际启动服务，接入本机合成的 QQ 事件、音频下载与收件端，验证转写里的配对口令、审批及浏览请求只进入聊天。该测试使用 Mock 回答；口音、远场噪声和真实 QQ 设备录音仍取决于部署的识别器。
+
+未听清语音的处理另有 `node --test test/unheard_voice.test.mjs` 五项回归，覆盖私聊重放、群内 @、旁聊静默、附带文字或引用及其他账号。合成 QQ 网关还分别让私聊／群聊语音经过实际下载和 ASR 空结果，再核对原消息收到本地澄清。完整套件已增至 1,204 项。

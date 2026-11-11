@@ -53,7 +53,7 @@ export default {
 
 已配对主人发来的语音和授权群的语音附在当前事件的 `attachments`。小柯优先使用 QQ 提供的 `asr_refer_text`。群聊采用“只回复叫名或 @”时，用 QQ 的 @ 功能发语音可以明确寻址；QQ 自带转写中叫到小柯也会进入叫名判断。[官方单聊事件](https://bot.q.qq.com/wiki/develop/api-v2/autogen/event/c2c_message_create.html) · [官方群 @ 事件](https://bot.q.qq.com/wiki/develop/api-v2/autogen/event/group_at_message_create.html)
 
-Windows 使用者在配置页勾选“入站语音转写”，点击“验证并保存全部配置”。QQ 没有提供文字时，小柯优先取 `voice_wav_url`；仅有原始音频时读取 `url`。识别器从内存读取 WAV。原始 SILK 需要标准安装的 `silk-wasm`，它会把有效帧转成 WAV。识别语言默认 `zh-CN`，其他已安装的 Windows 桌面语音识别语言可以通过 `XIAOKE_ASR_LANGUAGE` 指定。成功转写带“可能有识别误差”进入原会话，再由原聊天模型回复。默认关闭的开关只控制额外音频处理。语音可以私聊提问或在群里接话。需要执行主人任务、配对或审批时，请单独发文字命令。涉及人名、时间和金额而听法不清时，小柯会先复述待确认的部分。
+Windows 使用者在配置页勾选“入站语音转写”，点击“验证并保存全部配置”。QQ 没有提供文字时，小柯优先取 `voice_wav_url`；仅有原始音频时读取 `url`。识别器从内存读取 WAV。原始 SILK 需要标准安装的 `silk-wasm`，它会把有效帧转成 WAV。识别语言默认 `zh-CN`，其他已安装的 Windows 桌面语音识别语言可以通过 `XIAOKE_ASR_LANGUAGE` 指定。成功转写带“可能有识别误差”进入原会话，再由原聊天模型回复。默认关闭的开关只控制额外音频处理。如果整条消息都没有可读内容，已配对私聊或群内 @ 会立即收到本地文字提示，普通群聊保持安静。语音附带的问题、照片或引用仍按正常会话回答。语音可以私聊提问或在群里接话。需要执行主人任务、配对或审批时，请单独发文字命令。涉及人名、时间和金额而听法不清时，小柯会先复述待确认的部分。
 
 自建识别器可在任何系统注册一个 `asr` 插件，加入 `config.local.json` 的 `plugins` 后重启。显式配置的插件优先。插件收到最多 3 MiB 的已校验字节、实际 MIME、常规文件名与取消信号，成功返回 `{status:"ok",text:"转写内容"}`；无语音可返回 `{status:"no_speech"}`。每条来信处理第一段语音，整次识别期限为 20 秒。内置 Windows 识别在本机完成；插件若调用云服务，应在其部署说明中标明音频去向。可以参考[本机识别插件](../examples/plugins/windows_speech_asr.mjs)。
 

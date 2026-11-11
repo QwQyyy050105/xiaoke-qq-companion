@@ -32,6 +32,7 @@ test('the start command recovers from an offline boot, delivers a reply, and exi
       apiVersion:1, id:'fixture-asr', capabilities:['asr'], setup() {
         return {asr:async ({buffer, mime, signal}) => {
           if (signal.aborted || mime !== 'audio/wav' || buffer.length !== 46) throw Error('unexpected_audio');
+          if (buffer[44] === 127) return {status:'no_speech'};
           return {status:'ok', text:'请告诉我西瓜的颜色'};
         }};
       }
@@ -77,14 +78,20 @@ test('the start command recovers from an offline boot, delivers a reply, and exi
         voice('voice-browser', 'C2C_MESSAGE_CREATE', 'fixture-owner', '去抖音看看今天的新闻');
       } else if (reply.msg_id === 'voice-browser') {
         voice('group-voice', 'GROUP_AT_MESSAGE_CREATE', 'fixture-group');
+      } else if (reply.msg_id === 'group-voice') {
+        voice('owner-unheard', 'C2C_MESSAGE_CREATE', 'fixture-owner');
+      } else if (reply.msg_id === 'owner-unheard') {
+        voice('group-unheard', 'GROUP_AT_MESSAGE_CREATE', 'fixture-group');
       } else {
         // Reject the next credential request so the real service exits on its own.
         for (const socket of gateway.clients) socket.close(4004);
       }
-    } else if (['/owner-voice','/group-voice'].includes(req.url)) {
+    } else if (['/owner-voice','/group-voice','/owner-unheard','/group-unheard'].includes(req.url)) {
       audioRequests.push(req.url);
       res.setHeader('content-type', 'audio/wav');
-      res.end(Buffer.from('UklGRiYAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQIAAAAAAA==','base64'));
+      const wav = Buffer.from('UklGRiYAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQIAAAAAAA==','base64');
+      if (req.url.endsWith('unheard')) wav[44] = 127;
+      res.end(wav);
     } else {
       res.writeHead(404); res.end();
     }
@@ -134,14 +141,15 @@ test('the start command recovers from an offline boot, delivers a reply, and exi
     cwd:root, env:childEnv, timeout:20000, windowsHide:true
   }), {code:1});
   assert.equal(tokenAttempts, 3);
-  assert.deepEqual(replies.map(reply => reply.msg_id), ['voice-pair', 'sample-message', 'owner-voice', 'voice-approval', 'voice-browser', 'group-voice']);
-  assert.deepEqual(audioRequests, ['/owner-voice', '/group-voice']);
+  assert.deepEqual(replies.map(reply => reply.msg_id), ['voice-pair', 'sample-message', 'owner-voice', 'voice-approval', 'voice-browser', 'group-voice', 'owner-unheard', 'group-unheard']);
+  assert.deepEqual(audioRequests, ['/owner-voice', '/group-voice', '/owner-unheard', '/group-unheard']);
   assert.match(replies[0].content, /还没完成主人配对/);
   assert.match(replies[1].content, /连上啦/);
   assert.match(replies[2].content, /请告诉我西瓜的颜色/);
   assert.match(replies[3].content, /语音转写.*\/approve 12345/s);
   assert.match(replies[4].content, /语音转写.*去抖音看看/s);
   assert.match(replies[5].content, /请告诉我西瓜的颜色/);
+  for (const reply of replies.slice(6)) assert.equal(reply.content, '这条语音我没听到内容，打几个字给我？');
   assert.equal(JSON.parse(await readFile(join(root,'data','runtime_status.json'), 'utf8')).connected, false);
   await assert.rejects(access(join(root, 'temp', 'bridge.lock')), {code:'ENOENT'});
 });

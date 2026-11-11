@@ -28,7 +28,7 @@ import { GroupRouter } from './routing.mjs';
 import { GroupInbox, OrderedGroupDispatch } from './inbox.mjs';
 import { MediaLibrary } from './media.mjs';
 import { observedContent, referenceForObservation } from './conversation_input.mjs';
-import { hasVoiceTranscript } from './rich_context.mjs';
+import { hasVoiceTranscript, hasOnlyUntranscribedVoice } from './rich_context.mjs';
 import { deliveryPlan } from './delivery_plan.mjs';
 import { StickerCreation } from './sticker_creation.mjs';
 import { createImage } from './image_worker.mjs';
@@ -512,7 +512,7 @@ async function processAuthorizedMessage(event) {
   };
   try {
     // Machine transcripts are chat input. Only a separate text message can authorize a local job.
-    if (hasVoiceTranscript(event)) {
+    if (hasVoiceTranscript(event) || hasOnlyUntranscribedVoice(event)) {
       const result = await companion.handle(event, content => deliver(content));
       if (sequence && event.group_openid) await social.markReplied(event.group_openid, {social:result?.social, engaged:true});
       else if (result?.status === 'silent' && event.group_openid) await social.markObserved(event.group_openid, {social:result.social});
@@ -665,7 +665,7 @@ async function handleIncoming(event) {
     }).catch(() => warn('群聊回复队列异常。'));
   });
   routeTasks.add(job);
-  research.observe(event);
+  if (!hasOnlyUntranscribedVoice(event)) research.observe(event);
   void job.finally(() => routeTasks.delete(job)).catch(() => {});
   return job;
 }

@@ -1,5 +1,5 @@
 import { quoteContext, messageIndex, referencedMessageId } from './media.mjs';
-import { richMessageContext, readableFaces, voiceTranscripts, isVoiceAttachment } from './rich_context.mjs';
+import { richMessageContext, readableFaces, voiceTranscripts, isVoiceAttachment, UNTRANSCRIBED_VOICE } from './rich_context.mjs';
 
 export function observedContent(event) {
   const raw = readableFaces(event.content);
@@ -9,7 +9,7 @@ export function observedContent(event) {
     ? marker + transcripts.join('\n') + (raw.trim() ? '\n[随语音发送的文字] ' + raw : '')
     : raw;
   if (text.trim()) return text;
-  if (event.attachments?.some?.(isVoiceAttachment)) return '[收到语音，暂时没有可用的转写]';
+  if (event.attachments?.some?.(isVoiceAttachment)) return UNTRANSCRIBED_VOICE;
   return Array.isArray(event.attachments) && event.attachments.length ? '[收到图片或附件]' : text;
 }
 
@@ -62,7 +62,7 @@ export async function prepareConversationInput(media, event, roomHistory = [], {
   });
   const skipped=new Set(preparationDiagnostics.filter(item=>item.status==='vision_budget_skipped').map(item=>item.id));
   return { mediaCatalog:context.images, visionFiles, quotes,
-    richContext:rich.map(({mediaEvents,...item})=>item).filter(item=>item.entries.length||item.card||item.transcripts.length),
+    richContext:rich.map(({mediaEvents,...item})=>item).filter(item=>item.entries.length||item.card||item.transcripts.length||item.untranscribed_voice_count),
     mediaErrors:visionEnabled?[...ids.filter(id=>!loaded.has(id)&&!skipped.has(id)).map(id=>preparationDiagnostics.find(item=>item.id===id&&item.status==='not_loaded')||{id,status:'not_loaded'}),
       ...referenceDiagnostics.filter(item=>['reference_image_expired','reference_image_unavailable'].includes(item.status))]:[],
     referenceDiagnostics:[...referenceDiagnostics,...preparationDiagnostics.filter(item=>item.status==='vision_budget_skipped')],
