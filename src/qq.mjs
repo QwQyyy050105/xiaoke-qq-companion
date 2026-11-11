@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import {setTimeout as sleep} from 'node:timers/promises';
 import { inspectImage } from './media_image.mjs';
 import { messageIndex } from './media.mjs';
 import { inspectVoice } from './voice_library.mjs';
@@ -39,16 +40,23 @@ export class QQClient {
     this.appId = appId; this.secret = secret; this.fetcher = fetcher; this.log = log; this.webSocketAgent = webSocketAgent;
     this.token = null; this.expiresAt = 0; this.stopped = false; this.seq = null; this.session = null;
     this.selfIds = new Set(); this.connected = false;
+    this.shutdown = new AbortController();
   }
   async accessToken() {
     if (this.token && Date.now() < this.expiresAt) return this.token;
     const response = await this.fetcher(BASE + '/app/getAppAccessToken', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appId: this.appId, clientSecret: this.secret }), signal: AbortSignal.timeout(15000)
+      body: JSON.stringify({ appId: this.appId, clientSecret: this.secret }), signal: AbortSignal.any([AbortSignal.timeout(15000), this.shutdown.signal])
     });
-    const body = await response.json();
-    if (!response.ok || !body.access_token || (body.code && body.code !== 0)) throw new Error(`qq_token_error_${body.code || response.status}`);
+    let body;
+    try { body = await response.json(); }
+    catch (error) { if (response.ok) throw error; } // Gateways can return HTML on HTTP errors.
+    if (!response.ok || !body?.access_token || (body.code && body.code !== 0)) {
+      const retryable = [408, 425, 429].includes(response.status) || response.status >= 500;
+      throw Object.assign(new Error(`qq_token_error_${body?.code || response.status}`), {tokenRejected: !retryable});
+    }
     this.token = body.access_token; this.expiresAt = Date.now() + Math.max(1, Number(body.expires_in) - 60) * 1000;
+    this.log('QQ 凭据校验通过。');
     return this.token;
   }
   async api(path, method = 'GET', payload, retry = true, isCurrent = null) {
@@ -56,7 +64,7 @@ export class QQClient {
     if(isCurrent && !isCurrent())throw Object.assign(Error('qq_cancelled_before_send'),{messageNotSent:true});
     const response = await this.fetcher(BASE + path, {
       method, headers: { Authorization: `QQBot ${token}`, 'Content-Type': 'application/json', 'X-Union-Appid': this.appId },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }), signal: AbortSignal.timeout(15000)
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }), signal: AbortSignal.any([AbortSignal.timeout(15000), this.shutdown.signal])
     });
     const body = await response.json();
     if (response.status === 401 && retry) { this.token = null; return this.api(path, method, payload, false, isCurrent); }
@@ -139,13 +147,22 @@ export class QQClient {
     if(!validId(groupOpenid))throw Error('qq_invalid_group_query');
     return this.api(`/v2/groups/${encodeURIComponent(groupOpenid)}/bot_state`);
   }
-  stop() { this.stopped = true; this.connected = false; clearInterval(this.heartbeat); clearTimeout(this.reconnectTimer); clearTimeout(this.handshakeTimer); this.ws?.close(); }
-  async run(onMessage) {
+  stop() {
+    this.stopped = true;
+    this.connected = false;
+    this.shutdown.abort();
+    clearInterval(this.heartbeat);
+    clearTimeout(this.handshakeTimer);
+    this.ws?.close();
+  }
+  async run(onMessage, {onConnectionChange = () => {}} = {}) {
     let delay = 2000;
     while (!this.stopped) {
       try {
         const token = await this.accessToken();
+        if (this.stopped) return;
         const gateway = await this.api('/gateway/bot');
+        if (this.stopped) return;
         if (!gateway.url?.startsWith('wss://')) throw new Error('invalid_gateway');
         await new Promise((resolve) => {
           const ws = this.ws = new WebSocket(gateway.url, { handshakeTimeout: 15000, maxPayload: 2 * 1024 * 1024, ...(this.webSocketAgent ? {agent:this.webSocketAgent} : {}) });
@@ -175,6 +192,7 @@ export class QQClient {
               if (event.d?.session_id) this.session = event.d.session_id;
               if (event.t === 'READY' || event.d?.user) this.selfIds = new Set(userIds(event.d?.user));
               this.log('QQ 已连接，等待单聊和群聊消息。');
+              onConnectionChange(true);
             } else if (event.op === 0 && ['C2C_MESSAGE_CREATE', 'GROUP_AT_MESSAGE_CREATE', 'GROUP_MESSAGE_CREATE'].includes(event.t)) {
               const isGroup = event.t !== 'C2C_MESSAGE_CREATE';
               if (isGroup && !event.d?.group_openid) return;
@@ -189,13 +207,20 @@ export class QQClient {
           ws.on('close', code => {
             this.connected = false;
             clearInterval(this.heartbeat); clearTimeout(this.handshakeTimer);
+            onConnectionChange(false);
             if ([4006, 4007].includes(code)) { this.session = null; this.seq = null; }
             if ([4004, 4013, 4014].includes(code)) { this.token = null; this.session = null; }
             this.log(`QQ 连接断开（${code}），准备重连。`); resolve();
           });
         });
-      } catch (error) { this.log(`连接失败：${error.message.startsWith('qq_') ? error.message : '网络或网关暂不可用'}`); }
-      if (!this.stopped) await new Promise(resolve => { this.reconnectTimer = setTimeout(resolve, delay); });
+      } catch (error) {
+        if (this.stopped) return;
+        if (error.tokenRejected) throw error;
+        this.log(`连接失败：${error.message?.startsWith('qq_') ? error.message : '网络或网关暂不可用'}`);
+      }
+      if (this.stopped) return;
+      try { await sleep(delay, undefined, {signal:this.shutdown.signal}); }
+      catch (error) { if (this.stopped) return; throw error; }
       delay = Math.min(delay * 2, 60000);
     }
   }

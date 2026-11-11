@@ -2,7 +2,9 @@
 
 面向 **QQ 官方机器人应用** 的可扩展聊天模板：上下文、独立人格卡、多人消息排队、发送回执、本机面板和可替换模型。它使用 AppID/AppSecret 和腾讯事件权限，不代理个人 QQ 号，也不要求桌面 QQ 常开。
 
-这是三个独立模板中的官方 QQ 路线。微信个人账号接入与 OneBot/DPH 属于其他仓库，安装方式和权限不可混用。先阅读 [路线选择](docs/CHOOSING_A_TEMPLATE.md) 与 [可移植性说明](docs/PORTABILITY.md)。
+三个模板各自部署：小柯用 QQ 官方应用；小汐连接 Windows 微信；大肥鱼连接 OneBot v11 网关。三者的账号和授权不能互换。详见[路线选择](docs/CHOOSING_A_TEMPLATE.md)与[可移植性说明](docs/PORTABILITY.md)。
+
+要改代码，先看[QQ 事件、队列和模型的代码入口](docs/CODE_MAP.md)，其中列有各环节对应的离线用例。
 
 ## 从离线演示开始
 
@@ -16,17 +18,23 @@ npm run demo
 
 只需要文字聊天、API 模型和本地面板时，可以把安装命令换为 `npm ci --omit=optional`。精简模式省略公式排版、浏览器自动化、SILK 语音编码依赖；具体能力差异与恢复方法见 [安装体积选择](docs/PORTABILITY.md#选择安装体积)。完整开发测试使用标准安装。
 
-打开终端显示的 `http://127.0.0.1:8794`。无需 QQ、API 密钥或付费账号；“本地试聊”使用 Mock，角色与配置可真实保存。按 Ctrl+C 结束。CI 使用 `npm run demo -- --smoke`，成功后自动退出。
+打开终端打印的本机地址（默认 `http://127.0.0.1:8794`），在“本地试聊”输入一句话。看到包含输入文字的“演示回复”就跑通了离线路线。角色与配置可以在面板里保存，按 Ctrl+C 结束。无人值守检查用 `npm run demo -- --smoke`，成功会打印 `DEMO_SMOKE_OK` 并退出。
+
+| 下一步想做什么 | 从这里开始 |
+| --- | --- |
+| 用自己的官方 QQ 机器人收发 | [接入真实 QQ](#接入真实-qq) |
+| 带着人设换电脑，或恢复原机器人的记忆 | [迁移小柯到另一台电脑](docs/PORTABILITY.md#迁移小柯到另一台电脑) |
+| 面板能开，QQ 却没有回复 | [顺着一条测试消息排查](docs/PORTABILITY.md#顺着一条测试消息排查) |
 
 ## 接入真实 QQ
 
 1. 在腾讯 QQ 开放平台创建机器人应用，确认群聊/单聊事件、测试范围和审核权限。普通个人 QQ 账号不能直接代替。
-2. 复制并填写 `.env.example` 为 `.env`：`QQ_APP_ID`、`QQ_APP_SECRET`、自行生成的强 `QQ_PAIRING_CODE`。不要上传 `.env`。
+2. 在仓库目录执行 `npm run init`，打开生成的 `.env`，填写 `QQ_APP_ID`、`QQ_APP_SECRET` 和自行生成的强 `QQ_PAIRING_CODE`。已有的 `.env` 会保留。密钥只保存在自己的设备上。
 3. 运行 `npm run init`，将配对口令转换为哈希保存。通过 `npm run panel` 配置模型；推荐先选 OpenAI-compatible，填写服务商 baseURL、模型名和密钥环境变量名。API 模型必须支持结构化 JSON 输出；远程 HTTPS 密钥放 `.env` 的 `MODEL_API_KEY`；本机 `http://localhost` / `127.0.0.1` / `[::1]` 服务可不设密钥，程序不会发送 Authorization。高级设置可选择 `max_tokens` / `max_completion_tokens`，以及服务商不支持 response_format 时的“仅提示词约束”；两种方式都会验证返回 JSON。
 4. 填写允许访问的官方群 OpenID/用户 OpenID。它们来自官方测试事件/开发者后台，不是 QQ 群号、昵称或普通 QQ 号码。**默认名单为空，机器人不会处理任何真实会话。**
-5. `npm run doctor` 检查配置，再 `npm start`。在已授权私聊用 `/pair 你的口令` 完成主人配对；平台事件权限和发送额度仍需实际账号验收。
+5. 在配置面板所在的终端按 Ctrl+C，运行 `npm run doctor` 检查配置，再 `npm start`。真实服务会启动自己的面板。在已授权私聊用 `/pair 你的口令` 完成主人配对，然后在已授权群 @ 机器人发一句有明确答案的问题，核对 QQ 客户端里收到的回复。
 
-`npm run doctor -- --json` 是离线诊断，不读取密钥值、不发送消息；显示 needs_setup 也正常退出以供 CI 检查。`npm run chat` 可在终端测试当前模型，不连接 QQ。其他启动方式可在 Windows 终端运行同样 npm 命令。
+`npm run doctor -- --json` 在本机核对配置和凭据是否已填写，输出中不显示密钥值。尚有待配置项时会报告 `needs_setup` 并正常退出。`npm run chat` 可在终端测试当前模型。Windows PowerShell 若提示无法执行 npm.ps1，可以在这些命令里用 `npm.cmd` 调用 npm。
 
 ## 已实现与扩展边界
 

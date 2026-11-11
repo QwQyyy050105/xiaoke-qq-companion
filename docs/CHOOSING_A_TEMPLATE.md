@@ -1,12 +1,16 @@
 # 三个模板如何选择
 
-三个项目各自安装、配置、运行；它们不是同一接入协议的三个皮肤。模型提供商与聊天平台分别配置。
+你正在看 **小柯**。用 QQ 开放平台创建的机器人应用收发消息。群和用户的 OpenID 由平台提供，不能填普通 QQ 号。
 
-| 项目 | 消息接入 | 部署条件 | 适合谁 |
-| --- | --- | --- | --- |
-| Xiaoxi / 小汐 | Windows 微信桌面实验适配器 | 已登录微信、受支持版本、可访问的交互桌面及目标会话窗口 | 需要个人微信群陪伴，能接受桌面版本限制的使用者 |
-| Xiaoke / 小柯 | 官方 QQ Bot API | QQ 开放平台应用、AppID/AppSecret、平台授予的消息权限；无需个人 QQ 窗口 | 希望按官方平台能力部署的使用者 |
-| Fatfish / 蓝色大肥鱼 | OneBot v11 网关；可选 DSH 高级桥接 | 用户独立管理的兼容网关；高级路线还需 DSH | 已有网关或需要 DSH 工具链的开发者 |
+| 我手里有什么？ | 应选的仓库 | 收发之前还缺什么？ |
+| --- | --- | --- |
+| 一台 Windows 电脑，想让自己的微信号参与指定微信群 | [小汐 · Xiaoxi WeChat Companion](https://github.com/QwQyyy050105/xiaoxi-wechat-companion) | 支持的微信构建、已登录账号和指定群的独立窗口 |
+| QQ 开放平台的机器人应用，希望不用开桌面 QQ | [小柯 · Xiaoke QQ Companion](../README.md) | 应用凭据、平台事件权限和目标 OpenID |
+| 一个由自己维护的 OneBot v11 网关，希望用普通 QQ 号聊天 | [蓝色大肥鱼 · Fatfish QQ Bridge](https://github.com/QwQyyy050105/fatfish-qq-bridge) | 已登录的兼容网关、正向 WebSocket 地址和授权目标 |
+
+还没准备账号或 API key？按[本仓库快速开始](../README.md)安装依赖，运行 `npm run demo -- --smoke`。这一步用虚构输入验证 Mock 链路，不消耗模型额度。接下来再分别验证自己的模型能回答、指定账号能在目标会话收发；这两个结果不能互相代替。
+
+想迁移已有部署，查[换机与安装选择](PORTABILITY.md)；想接自己的模型或平台，查[本仓库扩展契约](EXTENDING.md)；需要一段可以交给 AI 助手的配置说明，用[新手提示词](BEGINNER_PROMPTS.md)。
 
 小汐当前不提供官方个人微信机器人协议。微信公众号、企业微信和个人微信群聊不能互相替代。未知微信版本、macOS 微信、手机微信均不应推断为已支持。版本不匹配时应停止并报告，不能套用其他版本偏移。
 
@@ -50,4 +54,4 @@
 - [qq-bridge 上游](https://github.com/Derpyu520/qq-bridge)
 - [Codex 非交互模式](https://developers.openai.com/codex/noninteractive/)
 
-许可证与改编来源见 LICENSE 和 THIRD_PARTY_NOTICES。第三方客户端、网关和模型服务分别遵守自己的许可与条件。
+许可证与改编来源见[本仓库许可证](../LICENSE)和[第三方声明](../THIRD_PARTY_NOTICES.txt)。第三方客户端、网关和模型服务分别遵守自己的许可与条件。

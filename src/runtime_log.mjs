@@ -9,7 +9,7 @@ const DEFAULT_RETAIN = 3;
 const LABELS = Object.freeze({
   suppressed: '非诊断文本已省略', startup: '桥接启动', paired: '已绑定主人', pairing: '等待本机配对',
   setup_required: '需要本机配置', singleton_rejected: '已有实例或锁异常', authenticated: 'QQ 凭据校验通过',
-  auth_failed: 'QQ 凭据校验失败', auth_help: 'QQ 凭据需要核对', connected: 'QQ 已连接', disconnected: 'QQ 连接断开',
+  auth_failed: 'QQ 凭据校验失败', auth_help: '核对同一官方应用的 QQ_APP_ID 与 QQ_APP_SECRET，然后重启', connected: 'QQ 已连接', disconnected: 'QQ 连接断开',
   connection_failed: 'QQ 连接失败', receive_group_at: '收到群聊提及', receive_group: '收到群聊消息', receive_private: '收到单聊消息',
   processing_failed: '消息处理失败', reply_group: '群聊回复已发送', reply_private: '单聊回复已发送',
   reply_image: '图片回复已发送', reply_voice: '语音回复已发送', proactive_sent: '主动消息已被 QQ 接受',
@@ -24,11 +24,10 @@ const LABELS = Object.freeze({
 });
 const EXACT = new Map([
   ['小柯 QQ 桥接启动。关闭这个窗口会下线；按 Ctrl+C 可正常退出。', 'startup'],
-  ['已绑定主人，等待消息。', 'paired'], ['请在 QQ 单聊发送设置窗口显示的 /pair 配对码。', 'pairing'],
-  ['请先双击 Setup.cmd，在本机输入 QQ 机器人 AppSecret。', 'setup_required'],
+  ['已绑定主人，等待消息。', 'paired'], ['请在已授权 QQ 私聊发送 /pair 加上本机配置的配对口令。', 'pairing'],
   ['已有实例或锁状态异常，无法启动第二个实例。', 'singleton_rejected'],
   ['QQ 凭据校验通过。', 'authenticated'],
-  ['100016 表示 AppID/AppSecret 不匹配。请在本机 Setup.cmd 更新真实 AppSecret；无需重置或分享密钥。', 'auth_help'],
+  ['请在本机核对同一官方应用的 QQ_APP_ID 与 QQ_APP_SECRET，然后重启。', 'auth_help'],
   ['QQ 已连接，等待单聊和群聊消息。', 'connected'], ['收到 QQ 群聊 @ 消息。', 'receive_group_at'],
   ['收到 QQ 群聊普通消息。', 'receive_group'], ['收到 QQ 单聊消息。', 'receive_private'],
   ['消息处理失败，请检查本机配置或重发消息。', 'processing_failed'], ['群聊回复已发送。', 'reply_group'],

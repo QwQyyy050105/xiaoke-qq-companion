@@ -1,5 +1,18 @@
 # 本地验收边界
 
+## 2026-11-11 换机与启动
+
+Windows 11，Node.js 24.22.1。将公开源码导出到含中文、空格和 `#` 的干净目录，从另一个目录运行入口。测试初始化时只使用临时配置和虚构数据。
+
+- `npm ci --offline --include=optional` 使用已缓存的锁定依赖完成安装。运行 `npm test` 时拦截从上级目录加载的 npm 依赖。基础环境 1,190 项通过，2 项因未指定 Python/Pillow 跳过。指定 Python 3.12.14、Pillow 12.3.0 后完整重跑，1,192 项通过，0 失败、0 跳过。
+- 部分恢复分别覆盖仅有 `config.local.json` 和仅有 `.env` 两种情况，运行 `init` 只补缺失文件。离线 Codex 诊断能区分失效的旧路径与新 PATH 中的候选执行文件，全程未启动模型。
+- 在项目目录外执行 `npm.cmd --prefix "<项目目录>" run doctor -- --json` 与 `run demo -- --smoke`。未配置账号时诊断返回 `needs_setup`，Mock 面板实际响应后打印 `DEMO_SMOKE_OK`。Windows 启动器 `Start_Panel.cmd --check` 对空 `node_modules` 返回 1，对完整安装与 `npm ci --omit=optional` 精简安装均返回 0；精简安装的 Mock 试聊同样通过。
+- `npm run check:release` 通过公开源码扫描。`npm audit --omit=dev --audit-level=high` 在本次检查返回 0 个已知依赖漏洞。本轮实机范围为 Windows 离线接入与本机 HTTP；没有使用真实 QQ 或云模型。其他系统和 Node 版本以相应提交的 CI 结果为准。
+
+随后从正常服务入口复验离线开机。执行 `node --test test/qq_startup_recovery.test.mjs test/qq_gateway.test.mjs test/core.test.mjs`，共 21 项通过。临时部署的 QQ 令牌与网关请求接入本机 HTTP/WebSocket 模拟服务。首次令牌请求返回 503，恢复后同一进程建立会话、接收私聊并提交一次配对回复。模拟端随后返回凭据错误 100016，程序以状态码 1 退出并释放实例锁。单独用例覆盖令牌请求进行中和重连等待中两种停止时机。修复后的 `node --test "test/*.test.mjs"` 回归 1,192 项全部通过，包括两个可选动画用例。
+
+## 2026-10-26 核心与可选能力
+
 2026-10-26，Windows，Node.js v24.22.1，KaTeX 0.18.2；可选动画解码使用标准 venv 中的 Python 3.12.2 / Pillow 13.0.0。公开源码副本测试，未访问真实 QQ、微信、聊天数据库、账号密钥或云模型。
 
 - 全量离线回归：1,188 项，1,188 通过，0 失败，0 取消，0 跳过（明确启用标准 venv 中的 Pillow，两个动图集成用例实际执行）。公开模板专项 12 项、运行时权限/能力专项 14 项及新增 Codex 期限专项 3 项全部通过，覆盖模型 API、插件、面板、人格本地副本、TTS/vision 门控及撤权取消；最终 clean-checkout 结果仍由 CI 和发布验收复核。

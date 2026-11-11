@@ -4,6 +4,28 @@ import https from 'node:https';
 import { EventEmitter } from 'node:events';
 import { QQClient } from '../src/qq.mjs';
 
+test('stop settles the reconnect wait and cancels an in-flight startup request', {timeout:1500}, async () => {
+  for (const phase of ['request', 'backoff']) {
+    const entered = Promise.withResolvers();
+    let attempts = 0;
+    const client = new QQClient('app', 'synthetic', {
+      fetcher: async (_url, {signal}) => {
+        attempts++;
+        if (phase === 'backoff') throw new TypeError('fetch failed');
+        entered.resolve();
+        await new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), {once:true}));
+      },
+      log: () => entered.resolve()
+    });
+    const running = client.run(() => assert.fail('unexpected message'));
+    await entered.promise;
+    client.stop();
+    await running;
+    assert.equal(attempts, 1);
+    assert.equal(client.connected, false);
+  }
+});
+
 test('gateway dispatches private, mentioned and ordinary group messages with their original content type', { timeout: 10000 }, async t => {
   t.mock.method(https, 'request', () => Object.assign(new EventEmitter(), { end() {}, abort() {} }));
   const received = [];

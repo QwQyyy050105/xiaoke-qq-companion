@@ -274,7 +274,7 @@ try {
     feedback: () => readJson(join(root, 'data', 'feedback.json'), []),
     settings: () => settings.get(), updateSettings: body => settings.update(body),
     publicConfig:()=>configStore.get(),
-    updatePublicConfig:async body=>{if('plugins' in body)throw Error('plugins_require_restart');const next=await applyRuntimeConfig({store:configStore,config,patch:body,guard:scopeAccess,inbox,social,onScopeChanged:async()=>{research.clearPending();await memoryCapture?.cancelPending();},onRevoked:async event=>{companion.invalidateDeliveries(event);await speechJobs.invalidate(event).catch(()=>{});}});speech.applyResourceControl();if(next.participation.mode==='active')social.start();else social.stop();return {ok:true};},
+    updatePublicConfig:async body=>{if('plugins' in body)throw Error('plugins_require_restart');await applyRuntimeConfig({store:configStore,config,patch:body,guard:scopeAccess,inbox,social,onScopeChanged:async()=>{research.clearPending();await memoryCapture?.cancelPending();},onRevoked:async event=>{companion.invalidateDeliveries(event);await speechJobs.invalidate(event).catch(()=>{});}});speech.applyResourceControl();updateParticipation();return {ok:true};},
     capabilities:async()=>{const runtime=await inspectRuntimeCapabilities(root,config);return {official_qq_transport:true,character_card:true,web_search:config.modelProvider.type==='codex'&&settings.get().allowWebSearch,vision:runtime.vision.available,asr:config.media.asr&&extensions.supports('asr'),tts:ttsCapability(config,speech).available,native_image_generation:runtime.image_generation.available,runtime,plugins:extensions.ids};},
     groups: () => { const lookup = new Map(directory.snapshot().map(row => [row.scope, row])); return social.snapshot().map(row => ({ ...row, directory: lookup.get(row.scope) || { status: 'not_queried' } })); },
     groupAction: (scope, action) => social.control(scope, action),
@@ -289,16 +289,14 @@ try {
   } });
   log('本机控制台已启动。');
 } catch { warn('本机控制台暂未启动，QQ聊天继续运行。'); }
-const cleanup = async () => { clearInterval(statusTimer); clearInterval(speechControlTimer); await stopSpeechJobs(); stopSpeech(root); research.stop(); directory.stop(); await ownerWork.stop(); await ownerBrowser.stop(); creation.stop(); social.stop(); await channels.stop(); await memoryCapture?.close(); client.stop(); await localConsole?.close(); await writeRuntimeStatus(); await logs.flush(); await lock.close(); await unlink(lockPath).catch(() => {}); process.exit(0); };
-process.on('SIGINT', cleanup); process.on('SIGTERM', cleanup);
-log('小柯 QQ 桥接启动。关闭这个窗口会下线；按 Ctrl+C 可正常退出。');
-log(companion.state.owner ? '已绑定主人，等待消息。' : '请在 QQ 单聊发送设置窗口显示的 /pair 配对码。');
-try { await client.accessToken(); log('QQ 凭据校验通过。'); }
-catch (error) {
-  warn('QQ 凭据校验失败：' + error.message);
-  warn('100016 表示 AppID/AppSecret 不匹配。请在本机 Setup.cmd 更新真实 AppSecret；无需重置或分享密钥。');
-  clearInterval(statusTimer); clearInterval(speechControlTimer); await stopSpeechJobs(); stopSpeech(root); await writeRuntimeStatus(); await lock.close(); await unlink(lockPath).catch(() => {}); process.exit(1);
+function updateParticipation() {
+  if (client.connected && config.participation.mode === 'active') social.start();
+  else social.stop();
 }
+process.once('SIGINT', () => client.stop());
+process.once('SIGTERM', () => client.stop());
+log('小柯 QQ 桥接启动。关闭这个窗口会下线；按 Ctrl+C 可正常退出。');
+log(companion.state.owner ? '已绑定主人，等待消息。' : '请在已授权 QQ 私聊发送 /pair 加上本机配置的配对口令。');
 async function processMessage(event){try{return await scopeAccess.withEvent(event,()=>processAuthorizedMessage(event));}catch(error){if(error.code==='scope_revoked')return {status:'cancelled',reason:'scope_revoked'};throw error;}}
 async function processAuthorizedMessage(event) {
   const authorization=scopeAccess.assert();
@@ -573,7 +571,6 @@ async function processAuthorizedMessage(event) {
     }
   }
 }
-if(config.participation.mode==='active')social.start();
 async function handleIncoming(event) {
   if(!isEventAllowed(config,event))return;
   const named=config.character.aliases.some(alias=>String(event.content||'').includes(alias));
@@ -649,9 +646,25 @@ async function handleIncoming(event) {
   void job.finally(() => routeTasks.delete(job)).catch(() => {});
   return job;
 }
-await client.run(event=>{if(!isEventAllowed(config,event))return;const authorization=scopeAccess.issue(event);return scopeAccess.withAuthorization(authorization,()=>handleIncoming({...event,[RUNTIME_AUTHORIZATION]:authorization}));});
+try {
+  await client.run(event => {
+    if (!isEventAllowed(config, event)) return;
+    const authorization = scopeAccess.issue(event);
+    return scopeAccess.withAuthorization(authorization, () => handleIncoming({...event, [RUNTIME_AUTHORIZATION]:authorization}));
+  }, {onConnectionChange() {
+    updateParticipation();
+    void writeRuntimeStatus();
+  }});
+} catch (error) {
+  warn('QQ 凭据校验失败：' + error.message);
+  if (error.message === 'qq_token_error_100016') warn('请在本机核对同一官方应用的 QQ_APP_ID 与 QQ_APP_SECRET，然后重启。');
+  process.exitCode = 1;
+}
+client.stop();
+creation.stop();
 social.stop(); await stopSpeechJobs(); clearInterval(speechControlTimer); stopSpeech(root); await memoryCapture?.close();
 research.stop(); directory.stop(); await ownerWork.stop(); await ownerBrowser.stop(); await channels.stop(); await localConsole?.close();
+await qqNetwork.close();
 clearInterval(statusTimer); await writeRuntimeStatus();
 await logs.flush();
 await lock.close(); await unlink(lockPath).catch(() => {});
